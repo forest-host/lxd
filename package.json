@@ -1,14 +1,26 @@
 {
-  "name": "lxc",
-  "version": "1.0.0",
-  "description": "Module for managing LXC containers on Ubuntu",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "",
-  "license": "ISC",
-  "dependencies": {
-    "bluebird": "^3.4.6"
-  }
+	"name": "lxc",
+	"version": "1.0.0",
+	"description": "Module for managing LXC containers on Ubuntu",
+	"main": "index.js",
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1"
+	},
+	"author": "",
+	"license": "ISC",
+	"babel": {
+		"plugins": [
+			"transform-es2015-arrow-functions",
+			"transform-es2015-modules-commonjs"
+		]
+	},
+	"dependencies": {
+		"bluebird": "^3.4.6"
+	},
+	"devDependencies": {
+		"babel-plugin-transform-es2015-arrow-functions": "^6.8.0",
+		"babel-plugin-transform-es2015-modules-commonjs": "^6.14.0",
+		"gulp": "^3.9.1",
+		"gulp-babel": "^6.1.2"
+	}
 }
