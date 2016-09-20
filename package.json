@@ -4,6 +4,7 @@
 	"description": "Module for managing LXC containers on Ubuntu",
 	"main": "index.js",
 	"scripts": {
+		"install": "gulp",
 		"test": "echo \"Error: no test specified\" && exit 1"
 	},
 	"author": "",
