@@ -1,6 +1,7 @@
 {
   "name": "lxc",
   "version": "1.0.0",
+  "repository": "git@bitbucket.org:publicpixels/lxc.git",
   "description": "Module for managing LXC containers on Ubuntu",
   "main": "dist/index.js",
   "scripts": {
