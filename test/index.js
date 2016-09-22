@@ -2,6 +2,7 @@
 
 describe('LXC Module', () => {
 	// TODO set / unset config?
+	// TODO list containers?
 	describe('create', () => {
 		it('Creates container');
 	});
