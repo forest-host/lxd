@@ -79,10 +79,6 @@ describe('LXC Module', () => {
 			return lxc.copy_from(name, container_path, host_path)
 				.then(() => stat(host_path))
 				.then(stats => stats.should.have.property('size'));
-				//.then(() => lxc.execute(name, 'ls ' + container_path))
-				//.then(clean_output)
-				//.then(lines => lines[0])
-				//.then(line => line.should.equal(directory));
 		});
 	});
 
@@ -96,6 +92,7 @@ describe('LXC Module', () => {
 	});
 
 	/*
+	// TODO - mount and unmount filesystems to and from container
 	describe('mount', () => {
 		it('Mounts data volume on container');
 	});
