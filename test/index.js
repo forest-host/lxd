@@ -5,13 +5,15 @@ chai.should();
 
 import lxc from '../lib';
 
+function clean_output(output) {
+	return output.stdout.map(line => line.toString().replace('\n', ''));
+}
+
 describe('LXC Module', () => {
 	var name = 'test';
-	var image = 'base';
+	var image = 'test';
 
 	// TODO set / unset config?
-	// TODO list containers?
-	/*
 	describe('create', () => {
 		it('Creates container', function() {
 			this.timeout(30000);
@@ -31,6 +33,39 @@ describe('LXC Module', () => {
 		});
 	});
 
+	describe('execute', () => {
+		it('Executes command in container', () => {
+			var options = {
+				cwd: '/',
+				user: 'forest',
+			};
+
+			return lxc.execute(name, 'hostname', options)
+				.then(clean_output)
+				.then(lines => lines[0])
+				.then(output => output.should.equal(name))
+		});
+	});
+
+	describe('copy_to', () => {
+		var directory = 'dist';
+		var path = __dirname.replace('test', directory);
+
+		it('Does not accept relative paths', done => {
+			lxc.copy_to(name, '../', '/home/ubuntu/')
+				.then(() => done(new Error('Relative path accepted')))
+				.catch(() => done());
+		});
+
+		it('Copies data from host to container', () => {
+			return lxc.copy_to(name, path, '/home/ubuntu/')
+				.then(() => lxc.execute(name, 'ls /home/ubuntu'))
+				.then(clean_output)
+				.then(lines => lines[0])
+				.then(line => line.should.equal(directory));
+		});
+	});
+
 	describe('destroy', () => {
 		it('Destroys container', function() {
 			this.timeout(5000);
@@ -38,17 +73,6 @@ describe('LXC Module', () => {
 				.then(() => lxc.list())
 				.then(list => list.should.have.length(0));
 		});
-	});
-	*/
-
-	describe('execute', () => {
-		it('Executes command in container', () => {
-			return lxc.execute(name, 'pwd', '/', 'ubuntu');
-		});
-	});
-
-	describe('copy_to', () => {
-		it('Copies data from host to container');
 	});
 
 	describe('copy_from', () => {
