@@ -11,26 +11,39 @@ describe('LXC Module', () => {
 
 	// TODO set / unset config?
 	// TODO list containers?
-	//describe('create', () => {
-		//it('Creates container', function() {
-			//this.timeout(30000);
-			//return lxc.create(image, name);
-		//});
-	//});
-
-	//describe('destroy', () => {
-		//it('Destroys container', function() {
-			//this.timeout(5000);
-			//return lxc.destroy(name);
-		//});
-	//});
+	/*
+	describe('create', () => {
+		it('Creates container', function() {
+			this.timeout(30000);
+			return lxc.create(image, name)
+				.then(() => lxc.list())
+				.then(list => list.should.have.length(1));
+		});
+	});
 
 	describe('list', () => {
 		it('Lists containers', () => {
 			return lxc.list()
 				.then(list => {
 					list.should.have.length(1);
+					list[0].name.should.equal(name);
 				});
+		});
+	});
+
+	describe('destroy', () => {
+		it('Destroys container', function() {
+			this.timeout(5000);
+			return lxc.destroy(name)
+				.then(() => lxc.list())
+				.then(list => list.should.have.length(0));
+		});
+	});
+	*/
+
+	describe('execute', () => {
+		it('Executes command in container', () => {
+			return lxc.execute(name, 'pwd', '/', 'ubuntu');
 		});
 	});
 
@@ -48,9 +61,5 @@ describe('LXC Module', () => {
 
 	describe('unmount', () => {
 		it('Unmounts data volume from container');
-	});
-
-	describe('execute', () => {
-		it('Executes command in container');
 	});
 });
