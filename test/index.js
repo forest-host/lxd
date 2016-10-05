@@ -78,10 +78,26 @@ describe('LXC Module', () => {
 				.then(lines => lines[0])
 				.then(line => line.should.equal(directory));
 		});
+
+		it('Errors when host path does not exist', () => {
+			return lxc.copy_to(name, '/path/does/not/exist', container_path)
+				.then(() => {
+					throw new Error();
+				})
+				.catch(err => err.message.should.contain('not exist'));
+		})
 	});
 
 	describe('copy_from', () => {
 		var host_path = '/tmp/testing';
+
+		it('Errors when container path does not exist', () => {
+			return lxc.copy_from(name, '/path/does/not/exist', host_path)
+				.then(() => {
+					throw new Error();
+				})
+				.catch(err => err.message.should.contain('not exist'));
+		})
 
 		it('Copies data from container to host', () => {
 			return lxc.copy_from(name, container_path, host_path)
@@ -90,6 +106,19 @@ describe('LXC Module', () => {
 				.then(output => {
 					output.should.contain('index.js');
 				});
+		});
+
+		it('Errors when host path exists', () => {
+			return lxc.copy_from(name, container_path, host_path)
+				.then(() => {
+					throw new Error();
+				})
+				.catch(err => err.message.should.contain('exists'));
+		})
+
+		// Remove tmp dir after
+		after(() => {
+			return exec('rm', ['-rf', host_path]);
 		});
 	});
 
