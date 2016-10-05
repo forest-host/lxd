@@ -5,6 +5,7 @@
   "description": "Module for managing LXC containers on Ubuntu",
   "main": "dist/index.js",
   "scripts": {
+	"build": "babel lib -d dist",
     "test": "NODE_ENV=testing mocha --watch --compilers js:babel-register"
   },
   "author": "Johan Schuijt",
