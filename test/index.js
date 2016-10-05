@@ -21,6 +21,10 @@ function parse_output(output) {
 	return output.stdout.map(line => line.toString());
 }
 
+function split_newlines(output) {
+	return output[0].split('\n');
+}
+
 function filter_containers(list) {
 	return list.filter(container => container.name == name);
 }
@@ -72,9 +76,9 @@ describe('LXC Module', () => {
 
 		it('Copies data from host to container', () => {
 			return container.upload(host_path, container_path)
-				.then(() => container.exec('ls ' + path.dirname(container_path)))
+				.then(() => container.exec('ls', [path.dirname(container_path)]))
 				.then(parse_output)
-				.then(output => output[0].split('\n'))
+				.then(split_newlines)
 				.then(lines => lines.should.contain(directory));
 		});
 
@@ -102,7 +106,7 @@ describe('LXC Module', () => {
 			return container.download(container_path, host_path)
 				.then(() => exec('ls', [host_path]))
 				.then(parse_output)
-				.then(output => output.map(line => line.replace('\n', '')))
+				.then(split_newlines)
 				.then(output => {
 					output.should.contain('index.js');
 				});
@@ -126,7 +130,7 @@ describe('LXC Module', () => {
 	describe('mount', () => {
 		it('Mounts data volume on container', () => {
 			return container.add_disk('test', mount, '/var/forest')
-				.then(() => container.exec('touch /var/forest/test'))
+				.then(() => container.exec('touch', ['/var/forest/test']))
 				.then(() => stat(mount+'/test'))
 				.then(() => exec('rm', [mount+'/test']));
 		});

@@ -29,19 +29,23 @@ var Container = function (host, name) {
 };
 
 // Execute command in container
-Container.prototype.exec = function (cmd, options) {
+Container.prototype.exec = function (cmd, args, options) {
 	var command = '';
 
-	// Catch empty options
-	options = options || {};
+	// Get correct options
+	var last = arguments[arguments.length - 1];
+	options = last === Object(last) ? last : {};
+
+	// Get correct args
+	args = Array.isArray(arguments[1]) ? arguments[1] : [];
 
 	// Change to working dir
 	if ('cwd' in options) {
 		command += 'cd ' + options.cwd + '; ';
 	}
 
-	// Escape string
-	command += cmd;
+	// Add args to command
+	command += cmd + (args.length ? ' ' + args.join(' ') : '');
 
 	// Run all of it in designated container
 	return (0, _utilities2.default)('lxc', ['exec', this.name, '--', '/bin/bash', '-c', command]);
@@ -72,7 +76,7 @@ Container.prototype.download = function (container_path, host_path) {
 
 		// Create archive in container
 		.then(function () {
-			return _this.exec('tar cfz ' + archive + ' ' + container_basename, options);
+			return _this.exec('tar', ['cfz', archive, container_basename], options);
 		})
 
 		// Make sure target exists & copy archive to host
@@ -96,7 +100,7 @@ Container.prototype.download = function (container_path, host_path) {
 		.then(function () {
 			return (0, _utilities2.default)('rm', [archive], { cwd: host_path });
 		}).then(function () {
-			return _this.exec('rm ' + archive, options);
+			return _this.exec('rm', [archive], options);
 		});
 	});
 };
@@ -137,16 +141,16 @@ Container.prototype.upload = function (host_path, container_path) {
 
 		// Extract archive in container and move it to desired path when required
 		.then(function () {
-			return _this2.exec('tar xfz ' + archive, container_options);
+			return _this2.exec('tar', ['xfz', archive], container_options);
 		}).then(function () {
 			if (host_basename != container_basename) {
-				return _this2.exec('mv ' + host_basename + ' ' + container_basename, container_options);
+				return _this2.exec('mv', [host_basename, container_basename], container_options);
 			}
 		})
 
 		// Remove archive from container and from host
 		.then(function () {
-			return _this2.exec('rm ' + archive, container_options);
+			return _this2.exec('rm', [archive], container_options);
 		}).then(function () {
 			return (0, _utilities2.default)('rm', [archive], host_options);
 		});
@@ -155,7 +159,7 @@ Container.prototype.upload = function (host_path, container_path) {
 
 // Check if path exists in container
 Container.prototype.path_exists = function (path) {
-	return this.exec('stat ' + path).catch(function () {
+	return this.exec('stat', [path]).catch(function () {
 		throw new Error('Path ' + path + ' in container does not exist');
 	});
 };
@@ -165,7 +169,7 @@ Container.prototype.path_lacks = function (path) {
 	var _this3 = this;
 
 	return new _bluebird2.default(function (resolve, reject) {
-		_this3.exec('stat ' + path).then(function () {
+		_this3.exec('stat', [path]).then(function () {
 			return reject(new Error('Path ' + path + ' on container exists'));
 		}).catch(function () {
 			return resolve();
