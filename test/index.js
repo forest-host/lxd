@@ -15,6 +15,7 @@ var name = 'test';
 var image = 'builder';
 var directory = 'dist';
 var container_path = '/var/dist';
+var mount = '/var/forest/mounts/builds';
 
 function parse_output(output) {
 	return output.stdout.map(line => line.toString());
@@ -25,12 +26,16 @@ function filter_containers(list) {
 }
 
 describe('LXC Module', () => {
-
+	var container;
+	
 	describe('create', () => {
 		it('Creates container', function() {
 			this.timeout(30000);
 			return lxc.create(image, name)
-				.then(() => lxc.list())
+				.then(obj => {
+					container = obj;
+					return lxc.list();
+				})
 				.then(filter_containers)
 				.then(list => list.should.have.length(1));
 		});
@@ -47,13 +52,9 @@ describe('LXC Module', () => {
 		});
 	});
 
-	describe('execute', () => {
+	describe('exec', () => {
 		it('Executes command in container', () => {
-			var options = {
-				cwd: '/',
-			};
-
-			return lxc.execute(name, 'hostname', options)
+			return container.exec('hostname')
 				.then(parse_output)
 				.then(lines => lines[0].replace('\n', ''))
 				.then(output => output.should.equal(name))
@@ -64,21 +65,21 @@ describe('LXC Module', () => {
 		var host_path = __dirname.replace('test', directory);
 
 		it('Does not accept relative paths', done => {
-			lxc.upload(name, '../', container_path)
+			container.upload('../', container_path)
 				.then(() => done(new Error('Relative path accepted')))
 				.catch(() => done());
 		});
 
 		it('Copies data from host to container', () => {
-			return lxc.upload(name, host_path, container_path)
-				.then(() => lxc.execute(name, 'ls ' + path.dirname(container_path)))
+			return container.upload(host_path, container_path)
+				.then(() => container.exec('ls ' + path.dirname(container_path)))
 				.then(parse_output)
 				.then(output => output[0].split('\n'))
 				.then(lines => lines.should.contain(directory));
 		});
 
 		it('Errors when host path does not exist', () => {
-			return lxc.upload(name, '/path/does/not/exist', container_path)
+			return container.upload('/path/does/not/exist', container_path)
 				.then(() => {
 					throw new Error();
 				})
@@ -90,7 +91,7 @@ describe('LXC Module', () => {
 		var host_path = '/tmp/testing';
 
 		it('Errors when container path does not exist', () => {
-			return lxc.download(name, '/path/does/not/exist', host_path)
+			return container.download('/path/does/not/exist', host_path)
 				.then(() => {
 					throw new Error();
 				})
@@ -98,7 +99,7 @@ describe('LXC Module', () => {
 		})
 
 		it('Copies data from container to host', () => {
-			return lxc.download(name, container_path, host_path)
+			return container.download(container_path, host_path)
 				.then(() => exec('ls', [host_path]))
 				.then(parse_output)
 				.then(output => output.map(line => line.replace('\n', '')))
@@ -108,7 +109,7 @@ describe('LXC Module', () => {
 		});
 
 		it('Errors when host path exists', () => {
-			return lxc.download(name, container_path, host_path)
+			return container.download(container_path, host_path)
 				.then(() => {
 					throw new Error();
 				})
@@ -118,6 +119,16 @@ describe('LXC Module', () => {
 		// Remove tmp dir after
 		after(() => {
 			return exec('rm', ['-rf', host_path]);
+		});
+	});
+
+	// Mount a share on container
+	describe('mount', () => {
+		it('Mounts data volume on container', () => {
+			return container.add_disk('test', mount, '/var/forest')
+				.then(() => container.exec('touch /var/forest/test'))
+				.then(() => stat(mount+'/test'))
+				.then(() => exec('rm', [mount+'/test']));
 		});
 	});
 
@@ -132,11 +143,6 @@ describe('LXC Module', () => {
 	});
 
 	/*
-	// TODO - mount and unmount filesystems to and from container
-	describe('mount', () => {
-		it('Mounts data volume on container');
-	});
-
 	describe('unmount', () => {
 		it('Unmounts data volume from container');
 	});
