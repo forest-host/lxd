@@ -12,13 +12,12 @@ import lxc from '../lib';
 var stat = Promise.promisify(fs.stat);
 
 var name = 'test';
-var image = 'test';
-var user = 'forest';
+var image = 'builder';
 var directory = 'dist';
-var container_path = '/home/' + user + '/' + directory;
+var container_path = '/var/dist';
 
 function parse_output(output) {
-	return output.stdout.map(line => line.toString().replace('\n', ''));
+	return output.stdout.map(line => line.toString());
 }
 
 function filter_containers(list) {
@@ -52,35 +51,34 @@ describe('LXC Module', () => {
 		it('Executes command in container', () => {
 			var options = {
 				cwd: '/',
-				user: user,
 			};
 
 			return lxc.execute(name, 'hostname', options)
 				.then(parse_output)
-				.then(lines => lines[0])
+				.then(lines => lines[0].replace('\n', ''))
 				.then(output => output.should.equal(name))
 		});
 	});
 
-	describe('copy_to', () => {
+	describe('upload', () => {
 		var host_path = __dirname.replace('test', directory);
 
 		it('Does not accept relative paths', done => {
-			lxc.copy_to(name, '../', container_path)
+			lxc.upload(name, '../', container_path)
 				.then(() => done(new Error('Relative path accepted')))
 				.catch(() => done());
 		});
 
 		it('Copies data from host to container', () => {
-			return lxc.copy_to(name, host_path, container_path)
+			return lxc.upload(name, host_path, container_path)
 				.then(() => lxc.execute(name, 'ls ' + path.dirname(container_path)))
 				.then(parse_output)
-				.then(lines => lines[0])
-				.then(line => line.should.equal(directory));
+				.then(output => output[0].split('\n'))
+				.then(lines => lines.should.contain(directory));
 		});
 
 		it('Errors when host path does not exist', () => {
-			return lxc.copy_to(name, '/path/does/not/exist', container_path)
+			return lxc.upload(name, '/path/does/not/exist', container_path)
 				.then(() => {
 					throw new Error();
 				})
@@ -88,11 +86,11 @@ describe('LXC Module', () => {
 		})
 	});
 
-	describe('copy_from', () => {
+	describe('download', () => {
 		var host_path = '/tmp/testing';
 
 		it('Errors when container path does not exist', () => {
-			return lxc.copy_from(name, '/path/does/not/exist', host_path)
+			return lxc.download(name, '/path/does/not/exist', host_path)
 				.then(() => {
 					throw new Error();
 				})
@@ -100,16 +98,17 @@ describe('LXC Module', () => {
 		})
 
 		it('Copies data from container to host', () => {
-			return lxc.copy_from(name, container_path, host_path)
+			return lxc.download(name, container_path, host_path)
 				.then(() => exec('ls', [host_path]))
 				.then(parse_output)
+				.then(output => output.map(line => line.replace('\n', '')))
 				.then(output => {
 					output.should.contain('index.js');
 				});
 		});
 
 		it('Errors when host path exists', () => {
-			return lxc.copy_from(name, container_path, host_path)
+			return lxc.download(name, container_path, host_path)
 				.then(() => {
 					throw new Error();
 				})
