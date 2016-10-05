@@ -128,11 +128,13 @@ describe('LXC Module', () => {
 
 	// Mount a share on container
 	describe('mount', () => {
+		var filename = 'test_mount'
+
 		it('Mounts data volume on container', () => {
 			return container.add_disk('test', mount, '/var/forest')
-				.then(() => container.exec('touch', ['/var/forest/test']))
-				.then(() => stat(mount+'/test'))
-				.then(() => exec('rm', [mount+'/test']));
+				.then(() => container.exec('touch', ['/var/forest/'+filename]))
+				.then(() => stat(mount+'/'+filename))
+				.then(() => exec('rm', [mount+'/'+filename]));
 		});
 	});
 
