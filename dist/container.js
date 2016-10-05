@@ -175,7 +175,11 @@ Container.prototype.path_lacks = function (path) {
 
 // Add mount
 Container.prototype.add_disk = function (name, source, path) {
-	return (0, _utilities2.default)('lxc', ['config', 'device', 'add', this.name, name, 'disk', 'source=' + source, 'path=' + path]);
+	var _this4 = this;
+
+	return (0, _utilities2.default)('lxc', ['config', 'device', 'add', this.name, name, 'disk', 'source=' + source, 'path=' + path]).then(function () {
+		return _this4;
+	});
 };
 
 Container.prototype.remove_disk = function (name) {};
