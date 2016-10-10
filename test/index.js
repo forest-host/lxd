@@ -32,10 +32,10 @@ function filter_containers(list) {
 describe('LXC Module', () => {
 	var container;
 	
-	describe('create', () => {
+	describe('launch', () => {
 		it('Creates container', function() {
 			this.timeout(30000);
-			return lxc.create(image, name)
+			return lxc.launch(image, name)
 				.then(obj => {
 					container = obj;
 					return lxc.list();
@@ -61,7 +61,7 @@ describe('LXC Module', () => {
 			return container.exec('hostname')
 				.then(parse_output)
 				.then(lines => lines[0].replace('\n', ''))
-				.then(output => output.should.equal(name))
+				.then(output => output.should.equal(name));
 		});
 	});
 
@@ -88,7 +88,7 @@ describe('LXC Module', () => {
 					throw new Error();
 				})
 				.catch(err => err.message.should.contain('not exist'));
-		})
+		});
 	});
 
 	describe('download', () => {
@@ -100,7 +100,7 @@ describe('LXC Module', () => {
 					throw new Error();
 				})
 				.catch(err => err.message.should.contain('not exist'));
-		})
+		});
 
 		it('Copies data from container to host', () => {
 			return container.download(container_path, host_path)
@@ -118,7 +118,7 @@ describe('LXC Module', () => {
 					throw new Error();
 				})
 				.catch(err => err.message.should.contain('exists'));
-		})
+		});
 
 		// Remove tmp dir after
 		after(() => {
@@ -128,7 +128,7 @@ describe('LXC Module', () => {
 
 	// Mount a share on container
 	describe('mount', () => {
-		var filename = 'test_mount'
+		var filename = 'test_mount';
 
 		it('Mounts data volume on container', () => {
 			return container.add_disk('test', mount, '/var/forest')
