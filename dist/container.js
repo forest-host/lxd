@@ -28,6 +28,13 @@ var Container = function (host, name) {
 	this.name = name;
 };
 
+// Get config of this container from lxc list
+Container.prototype.get_config = function () {
+	return this.host.list(this.name).then(function (lines) {
+		return lines[0];
+	});
+};
+
 // Execute command in container
 Container.prototype.exec = function (cmd, args, options) {
 	// Get correct options
@@ -171,6 +178,7 @@ Container.prototype.path_lacks = function (path) {
 };
 
 // Add mount
+// TODO - mount NFS directly in container
 Container.prototype.add_disk = function (name, source, path) {
 	var _this4 = this;
 
@@ -179,6 +187,8 @@ Container.prototype.add_disk = function (name, source, path) {
 	});
 };
 
-Container.prototype.remove_disk = function (name) {};
+//Container.prototype.remove_disk = function(name) {
+
+//};
 
 module.exports = Container;
