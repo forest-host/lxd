@@ -1,4 +1,3 @@
-//import assert from 'assert';
 
 import Promise from 'bluebird';
 import fs from 'fs';
@@ -31,7 +30,7 @@ function filter_containers(list) {
 
 describe('LXC Module', () => {
 	var container;
-	
+
 	describe('launch', () => {
 		it('Creates container', function() {
 			this.timeout(30000);
@@ -42,6 +41,15 @@ describe('LXC Module', () => {
 				})
 				.then(filter_containers)
 				.then(list => list.should.have.length(1));
+		});
+	});
+
+	describe('get_config', () => {
+		it('returns config of container', () => {
+			return container.get_config()
+				.then(config => {
+					config.should.have.property('name');
+				});
 		});
 	});
 
@@ -126,6 +134,7 @@ describe('LXC Module', () => {
 		});
 	});
 
+	// TODO - mount zfs block device
 	// Mount a share on container
 	describe('mount', () => {
 		var filename = 'test_mount';
