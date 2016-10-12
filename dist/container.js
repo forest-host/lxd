@@ -8,32 +8,89 @@ var _utilities = require('utilities');
 
 var _utilities2 = _interopRequireDefault(_utilities);
 
-var _path = require('path');
-
-var _path2 = _interopRequireDefault(_path);
-
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 // Check if paths are not relative
-var validate_paths = function (host_path, container_path) {
-	if (host_path.substring(0, 1) == '.' || container_path.substring(0, 1) == '.') {
-		return _bluebird2.default.reject(new Error('This function does not support relative paths'));
+/*
+var validate_paths = (host_path, container_path) => {
+	if(host_path.substring(0, 1) == '.' || container_path.substring(0, 1) == '.') {
+		return Promise.reject(new Error('This function does not support relative paths'));
 	} else {
-		return _bluebird2.default.resolve();
+		return Promise.resolve();
 	}
 };
+*/
 
-var Container = function (host, name) {
-	this.host = host;
+var Container = function (client, name) {
+	this._client = client;
 	this.name = name;
 };
 
-// Get config of this container from lxc list
-Container.prototype.get_config = function () {
-	return this.host.list(this.name).then(function (lines) {
-		return lines[0];
+Container.prototype._action = function (action) {
+	var _this = this;
+
+	return this._client._request('PUT', '/containers/' + this.name + '/state', {
+		action: action,
+		timeout: 30,
+		force: true
+	}).then(function (res) {
+		if (res.err) {
+			throw new Error(res.err);
+		}
+		return _this;
 	});
 };
+
+// Start this container
+Container.prototype.start = function () {
+	return this._action('start');
+};
+
+// Stop this container
+Container.prototype.stop = function () {
+	return this._action('stop');
+};
+
+// Delete this container
+Container.prototype.destroy = function () {
+	var _this2 = this;
+
+	return this.stop().then(function () {
+		return _this2._client._request('DELETE', '/containers/' + _this2.name);
+	});
+};
+
+// TODO - PUT /containers/name
+Container.prototype.update = function (data) {};
+
+// Get config of this container from lxc list
+Container.prototype.info = function () {
+	return this._client._request('GET', '/containers/' + this.name);
+};
+
+// Get state of container
+Container.prototype.state = function () {
+	return this._client._request('GET', '/containers/' + this.name + '/state');
+};
+
+/*
+Container.prototype.wait_for_dhcp = function() {
+	return this.get_config()
+		.then(config => {
+			var addresses = config.state.network.eth0.addresses.filter(address => {
+				return address.family == 'inet';
+			});
+
+			if( ! addresses.length) {
+				// Wait for 500 ms, then try again
+				return new Promise((resolve) => setTimeout(resolve, 500))
+					.then(() => this.wait_for_dhcp());
+			}
+
+			return addresses[0];
+		});
+};
+*/
 
 // Execute command in container
 Container.prototype.exec = function (cmd, args, options) {
@@ -47,145 +104,136 @@ Container.prototype.exec = function (cmd, args, options) {
 	// Get correct args
 	args = Array.isArray(arguments[1]) ? arguments[1] : [];
 
+	// Add args to cmd
+	cmd += args.length ? ' ' + args.join(' ') : '';
+
 	// Run command with joined args on container
-	return (0, _utilities2.default)('lxc', ['exec', this.name, '--', '/bin/bash', '-c', cmd + (args.length ? ' ' + args.join(' ') : '')]);
+	return this._client._request('POST', '/containers/' + this.name + '/exec', {
+		command: ['/bin/bash', '-c', cmd],
+		environment: {},
+		'wait-for-websocket': true,
+		interactive: false
+	});
 };
 
+/*
 // Copy data from container to host
-Container.prototype.download = function (container_path, host_path) {
-	var _this = this;
-
+Container.prototype.download = function(container_path, host_path) {
 	// Check for relative paths
-	return validate_paths(host_path, container_path).then(function () {
-		var container_basename = _path2.default.basename(container_path);
-		var host_basename = container_basename;
+	return validate_paths(host_path, container_path)
+		.then(() => {
+			var container_basename = path.basename(container_path);
+			var host_basename = container_basename;
 
-		// Get correct host path
-		if (host_path.substring(host_path.length - 1) != '/') {
-			host_basename = _path2.default.basename(host_path);
-			host_path = _path2.default.dirname(host_path) + '/';
-		}
-
-		// Setup vars
-		var dirname = _path2.default.dirname(container_path);
-		var options = { cwd: dirname };
-		var archive = container_basename + '.tar.gz';
-
-		// Check if paths are valid
-		return _bluebird2.default.all([_this.host.path_lacks(host_path + host_basename), _this.path_exists(dirname + '/' + container_basename)])
-
-		// Create archive in container
-		.then(function () {
-			return _this.exec('tar', ['cfz', archive, container_basename], options);
-		})
-
-		// Make sure target exists & copy archive to host
-		.then(function () {
-			return (0, _utilities2.default)('mkdir', ['-p', host_path]);
-		}).then(function () {
-			return (0, _utilities2.default)('lxc', ['file', 'pull', _this.name + '/' + dirname + '/' + archive, host_path]);
-		})
-
-		// Extract archive on host & rename it if needed
-		.then(function () {
-			return (0, _utilities2.default)('tar', ['xfz', archive], { cwd: host_path });
-		}).then(function () {
-			if (host_basename != container_basename) {
-				// TODO name conflicts? Rename on container?
-				return (0, _utilities2.default)('mv', [container_basename, host_basename], { cwd: host_path });
+			// Get correct host path
+			if(host_path.substring(host_path.length - 1) != '/') {
+				host_basename = path.basename(host_path);
+				host_path = path.dirname(host_path) + '/';
 			}
-		})
 
-		// Remove archive on host & remove archive in container
-		.then(function () {
-			return (0, _utilities2.default)('rm', [archive], { cwd: host_path });
-		}).then(function () {
-			return _this.exec('rm', [archive], options);
+			// Setup vars
+			var dirname = path.dirname(container_path);
+			var options = { cwd: dirname };
+			var archive = container_basename + '.tar.gz';
+
+			// Check if paths are valid
+			return Promise.all([
+				this._client.path_lacks(host_path + host_basename),
+				this.path_exists(dirname + '/' + container_basename)
+			])
+
+				// Create archive in container
+				.then(() => this.exec('tar', ['cfz', archive, container_basename], options))
+
+				// Make sure target exists & copy archive to host
+				.then(() => exec('mkdir', ['-p', host_path]))
+				.then(() => exec('lxc', ['file', 'pull', this.name + '/' + dirname + '/' + archive, host_path]))
+
+				// Extract archive on host & rename it if needed
+				.then(() => exec('tar', ['xfz', archive], { cwd: host_path }))
+				.then(() => {
+					if(host_basename != container_basename) {
+						// TODO name conflicts? Rename on container?
+						return exec('mv', [container_basename, host_basename], { cwd: host_path });
+					}
+				})
+
+				// Remove archive on host & remove archive in container
+				.then(() => exec('rm', [archive], { cwd: host_path }))
+				.then(() => this.exec('rm', [archive], options));
 		});
-	});
 };
 
 // TODO - support relative paths?
 // Copy data from host to container with name
-Container.prototype.upload = function (host_path, container_path) {
-	var _this2 = this;
-
+Container.prototype.upload = function(host_path, container_path) {
 	// Check for relative paths
-	return validate_paths(host_path, container_path).then(function () {
-		// Setup names of directories and archive
-		var host_basename = _path2.default.basename(host_path);
-		var container_basename = host_basename;
-		var archive = host_basename + '.tar.gz';
+	return validate_paths(host_path, container_path)
+		.then(() => {
+			// Setup names of directories and archive
+			var host_basename = path.basename(host_path);
+			var container_basename = host_basename;
+			var archive = host_basename + '.tar.gz';
 
-		// Get correct container path
-		if (container_path.substring(container_path.length - 1) != '/') {
-			container_basename = _path2.default.basename(container_path);
-			container_path = _path2.default.dirname(container_path) + '/';
-		}
-
-		// Setup working dirs for host and container
-		var host_options = { cwd: _path2.default.dirname(host_path) };
-		var container_options = { cwd: container_path };
-
-		return _bluebird2.default.all([_this2.host.path_exists(host_path), _this2.path_lacks(container_path + container_basename)])
-
-		// Create archive on host
-		.then(function () {
-			return (0, _utilities2.default)('tar', ['cfz', archive, host_basename], host_options);
-		})
-
-		// Push file to container
-		.then(function () {
-			return (0, _utilities2.default)('lxc', ['file', 'push', archive, _this2.name + '/' + container_path], host_options);
-		})
-
-		// Extract archive in container and move it to desired path when required
-		.then(function () {
-			return _this2.exec('tar', ['xfz', archive], container_options);
-		}).then(function () {
-			if (host_basename != container_basename) {
-				return _this2.exec('mv', [host_basename, container_basename], container_options);
+			// Get correct container path
+			if(container_path.substring(container_path.length - 1) != '/') {
+				container_basename = path.basename(container_path);
+				container_path = path.dirname(container_path) + '/';
 			}
-		})
 
-		// Remove archive from container and from host
-		.then(function () {
-			return _this2.exec('rm', [archive], container_options);
-		}).then(function () {
-			return (0, _utilities2.default)('rm', [archive], host_options);
+			// Setup working dirs for host and container
+			var host_options = { cwd: path.dirname(host_path) };
+			var container_options = { cwd: container_path };
+
+			return Promise.all([
+				this._client.path_exists(host_path),
+				this.path_lacks(container_path + container_basename),
+			])
+
+				// Create archive on host
+				.then(() => exec('tar', ['cfz', archive, host_basename], host_options))
+
+				// Push file to container
+				.then(() => exec('lxc', ['file', 'push', archive, this.name + '/' + container_path], host_options))
+
+				// Extract archive in container and move it to desired path when required
+				.then(() => this.exec('tar', ['xfz', archive], container_options))
+				.then(() => {
+					if(host_basename != container_basename) {
+						return this.exec('mv', [host_basename, container_basename], container_options);
+					}
+				})
+
+				// Remove archive from container and from host
+				.then(() => this.exec('rm', [archive], container_options))
+				.then(() => exec('rm', [archive], host_options));
 		});
-	});
 };
 
 // Check if path exists in container
-Container.prototype.path_exists = function (path) {
-	return this.exec('stat', [path]).catch(function () {
-		throw new Error('Path ' + path + ' in container does not exist');
-	});
+Container.prototype.path_exists = function(path) {
+	return this.exec('stat', [path])
+		.catch(() => {
+			throw new Error('Path ' + path + ' in container does not exist');
+		});
 };
 
 // Check if container path does not exist
-Container.prototype.path_lacks = function (path) {
-	var _this3 = this;
-
-	return new _bluebird2.default(function (resolve, reject) {
-		_this3.exec('stat', [path]).then(function () {
-			return reject(new Error('Path ' + path + ' on container exists'));
-		}).catch(function () {
-			return resolve();
-		});
+Container.prototype.path_lacks = function(path) {
+	return new Promise((resolve, reject) => {
+		this.exec('stat', [path])
+			.then(() => reject(new Error('Path ' + path + ' on container exists')))
+			.catch(() => resolve());
 	});
 };
 
 // Add mount
 // TODO - mount NFS directly in container
-Container.prototype.add_disk = function (name, source, path) {
-	var _this4 = this;
-
-	return (0, _utilities2.default)('lxc', ['config', 'device', 'add', this.name, name, 'disk', 'source=' + source, 'path=' + path]).then(function () {
-		return _this4;
-	});
+Container.prototype.add_disk = function(name, source, path) {
+	return exec('lxc', ['config', 'device', 'add', this.name, name, 'disk', 'source='+source, 'path='+path])
+		.then(() => this);
 };
+*/
 
 //Container.prototype.remove_disk = function(name) {
 
