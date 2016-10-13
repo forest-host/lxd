@@ -35,14 +35,13 @@ describe('LXC Module', () => {
 		});
 	});
 	
-	/*
 	describe('wait_for_dhcp', () => {
 		it('returns after address after dhcp is done', function() {
 			this.timeout(60000);
 
-			return container.info()
-				.then(config => {
-					var addresses = config.state.network.eth0.addresses.filter(address => {
+			return container.state()
+				.then(state => {
+					var addresses = state.network.eth0.addresses.filter(address => {
 						return address.family == 'inet';
 					});
 
@@ -50,12 +49,18 @@ describe('LXC Module', () => {
 
 					return container.wait_for_dhcp();
 				})
-				.then(address => {
-					address.should.have.property('address');
+				.then(() => {
+					return container.state();
+				})
+				.then(state => {
+					var addresses = state.network.eth0.addresses.filter(address => {
+						return address.family == 'inet';
+					});
+
+					addresses.should.have.length(1);
 				});
 		});
 	});
-	*/
 
 	describe('info', () => {
 		it('returns config of container', () => {

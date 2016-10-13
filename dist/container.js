@@ -1,5 +1,9 @@
 'use strict';
 
+var _bluebird = require('bluebird');
+
+var _bluebird2 = _interopRequireDefault(_bluebird);
+
 var _lodash = require('lodash');
 
 var _lodash2 = _interopRequireDefault(_lodash);
@@ -21,8 +25,6 @@ var Container = function (client, name) {
 	this._client = client;
 	this.name = name;
 };
-//import Promise from 'bluebird';
-//import exec from 'utilities';
 
 Container.prototype._action = function (action) {
 	var _this = this;
@@ -81,24 +83,26 @@ Container.prototype.state = function () {
 	return this._client._request('GET', '/containers/' + this.name + '/state');
 };
 
-/*
-Container.prototype.wait_for_dhcp = function() {
-	return this.get_config()
-		.then(config => {
-			var addresses = config.state.network.eth0.addresses.filter(address => {
-				return address.family == 'inet';
-			});
+Container.prototype.wait_for_dhcp = function () {
+	var _this4 = this;
 
-			if( ! addresses.length) {
-				// Wait for 500 ms, then try again
-				return new Promise((resolve) => setTimeout(resolve, 500))
-					.then(() => this.wait_for_dhcp());
-			}
-
-			return addresses[0];
+	return this.state().then(function (state) {
+		return state.network.eth0.addresses.filter(function (address) {
+			return address.family == 'inet';
 		});
+	}).then(function (addresses) {
+		if (!addresses.length) {
+			// Wait for 500 ms, then try again
+			return new _bluebird2.default(function (resolve) {
+				return setTimeout(resolve, 500);
+			}).then(function () {
+				return _this4.wait_for_dhcp();
+			});
+		}
+
+		return addresses[0];
+	});
 };
-*/
 
 // Execute command in container
 Container.prototype.exec = function (cmd, args, options) {
@@ -239,7 +243,7 @@ Container.prototype.path_lacks = function(path) {
 // Add mount
 // TODO - mount NFS directly in container
 Container.prototype.add_disk = function (name, source, path) {
-	var _this4 = this;
+	var _this5 = this;
 
 	var data = { devices: {} };
 
@@ -250,7 +254,7 @@ Container.prototype.add_disk = function (name, source, path) {
 	};
 
 	return this.update(data).then(function () {
-		return _this4;
+		return _this5;
 	});
 };
 
