@@ -181,7 +181,9 @@ Client.prototype.launch = function (image, name, config) {
 	return this.create(image, name, config)
 	// Start container
 	.then(function (container) {
-		return container.start();
+		return container.start().then(function () {
+			return container;
+		});
 	});
 };
 

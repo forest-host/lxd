@@ -1,7 +1,7 @@
 
 import Promise from 'bluebird';
 import fs from 'fs';
-import path from 'path';
+//import path from 'path';
 import chai from 'chai';
 import exec from 'utilities';
 chai.should();
@@ -12,8 +12,8 @@ var stat = Promise.promisify(fs.stat);
 
 var name = 'test';
 var image = 'builder';
-var directory = 'dist';
-var container_path = '/var/dist';
+//var directory = 'dist';
+//var container_path = '/var/dist';
 var mount = '/var/forest/mounts/builds';
 
 describe('LXC Module', () => {
@@ -28,8 +28,10 @@ describe('LXC Module', () => {
 				.then(list => list.should.have.length(1))
 
 				// Get container when it exists to stop tests from failing
-				.catch(() => lxc.get(name))
-				.then(obj => container = obj);
+				.catch(() => {
+					return lxc.get(name)
+						.then(obj => container = obj);
+				});
 		});
 	});
 	
@@ -84,6 +86,21 @@ describe('LXC Module', () => {
 
 			return container.exec('hostname')
 				.then(output => output.stdout.should.contain(name));
+		});
+	});
+
+	describe('update', () => {
+		var cpu = '1';
+
+		it('Updates container config', () => {
+			return container.update({
+				config: {
+					'limits.cpu': cpu
+				}
+			})
+			.then(info => {
+				info.config['limits.cpu'].should.equal(cpu);
+			});
 		});
 	});
 
@@ -148,10 +165,11 @@ describe('LXC Module', () => {
 			return exec('rm', ['-rf', host_path]);
 		});
 	});
+	*/
 
 	// TODO - mount zfs block device
 	// Mount a share on container
-	describe('mount', () => {
+	describe('add_disk', () => {
 		var filename = 'test_mount';
 
 		it('Mounts data volume on container', () => {
@@ -161,7 +179,6 @@ describe('LXC Module', () => {
 				.then(() => exec('rm', [mount+'/'+filename]));
 		});
 	});
-	*/
 
 	describe('destroy', () => {
 		it('Destroys container', function() {

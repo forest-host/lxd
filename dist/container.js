@@ -1,12 +1,8 @@
 'use strict';
 
-var _bluebird = require('bluebird');
+var _lodash = require('lodash');
 
-var _bluebird2 = _interopRequireDefault(_bluebird);
-
-var _utilities = require('utilities');
-
-var _utilities2 = _interopRequireDefault(_utilities);
+var _lodash2 = _interopRequireDefault(_lodash);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -25,6 +21,8 @@ var Container = function (client, name) {
 	this._client = client;
 	this.name = name;
 };
+//import Promise from 'bluebird';
+//import exec from 'utilities';
 
 Container.prototype._action = function (action) {
 	var _this = this;
@@ -60,8 +58,18 @@ Container.prototype.destroy = function () {
 	});
 };
 
-// TODO - PUT /containers/name
-Container.prototype.update = function (data) {};
+// Update container config
+Container.prototype.update = function (data) {
+	var _this3 = this;
+
+	return this.info().then(function (info) {
+		return _lodash2.default.merge(info, data);
+	}).then(function (data) {
+		return _this3._client._request('PUT', '/containers/' + _this3.name, data);
+	}).then(function () {
+		return _this3.info();
+	});
+};
 
 // Get config of this container from lxc list
 Container.prototype.info = function () {
@@ -226,14 +234,25 @@ Container.prototype.path_lacks = function(path) {
 			.catch(() => resolve());
 	});
 };
+*/
 
 // Add mount
 // TODO - mount NFS directly in container
-Container.prototype.add_disk = function(name, source, path) {
-	return exec('lxc', ['config', 'device', 'add', this.name, name, 'disk', 'source='+source, 'path='+path])
-		.then(() => this);
+Container.prototype.add_disk = function (name, source, path) {
+	var _this4 = this;
+
+	var data = { devices: {} };
+
+	data.devices[name] = {
+		source: source,
+		path: path,
+		type: 'disk'
+	};
+
+	return this.update(data).then(function () {
+		return _this4;
+	});
 };
-*/
 
 //Container.prototype.remove_disk = function(name) {
 
