@@ -3,12 +3,20 @@ import Promise from 'bluebird';
 import fs from 'fs';
 //import path from 'path';
 import chai from 'chai';
-import exec from 'utilities';
+import chaiAsPromised from 'chai-as-promised';
+chai.use(chaiAsPromised);
 chai.should();
 
-import lxc from '../lib';
+import exec from 'utilities';
+
+import LXC from '../lib';
 
 var stat = Promise.promisify(fs.stat);
+
+var certfile = __dirname + '/client.crt';
+var keyfile = __dirname + '/client.key';
+
+var client = new LXC(certfile, keyfile);
 
 var name = 'test';
 var image = 'builder';
@@ -16,20 +24,31 @@ var image = 'builder';
 //var container_path = '/var/dist';
 var mount = '/var/forest/mounts/builds';
 
+describe('Client', () => {
+	describe('Wrongly configured')
+});
+
 describe('LXC Module', () => {
 	var container;
 
+	describe('containers', () => {
+		it('Responds with a array', () => {
+			client.containers().should.eventually.be.a('array');
+		});
+	})
+
+	/*
 	describe('launch', () => {
 		it('Creates container', function() {
 			this.timeout(30000);
-			return lxc.launch(image, name)
+			return client.launch(image, name)
 				.then(obj => container = obj)
-				.then(() => lxc.list())
+				.then(() => client.list())
 				.then(list => list.should.have.length(1))
 
 				// Get container when it exists to stop tests from failing
 				.catch(() => {
-					return lxc.get(name)
+					return client.get(name)
 						.then(obj => container = obj);
 				});
 		});
@@ -78,7 +97,7 @@ describe('LXC Module', () => {
 
 	describe('list', () => {
 		it('Lists containers', () => {
-			return lxc.list()
+			return client.list()
 				.then(list => {
 					list.should.have.length(1);
 				});
@@ -170,7 +189,6 @@ describe('LXC Module', () => {
 			return exec('rm', ['-rf', host_path]);
 		});
 	});
-	*/
 
 	// TODO - mount zfs block device
 	// Mount a share on container
@@ -189,12 +207,11 @@ describe('LXC Module', () => {
 		it('Destroys container', function() {
 			this.timeout(5000);
 			return container.destroy()
-				.then(() => lxc.list())
+				.then(() => client.list())
 				.then(list => list.should.have.length(0));
 		});
 	});
 
-	/*
 	describe('unmount', () => {
 		it('Unmounts data volume from container');
 	});
