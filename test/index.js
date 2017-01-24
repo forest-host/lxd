@@ -1,11 +1,12 @@
 
 import Promise from 'bluebird';
 import fs from 'fs';
-//import path from 'path';
+import {_extend as extend} from 'util';
+
 import chai from 'chai';
 import chaiAsPromised from 'chai-as-promised';
-chai.use(chaiAsPromised);
 chai.should();
+chai.use(chaiAsPromised);
 
 import exec from 'utilities';
 
@@ -13,29 +14,36 @@ import LXC from '../lib';
 
 var stat = Promise.promisify(fs.stat);
 
-var certfile = __dirname + '/client.crt';
-var keyfile = __dirname + '/client.key';
-
-var client = new LXC(certfile, keyfile);
-
 var name = 'test';
 var image = 'builder';
 //var directory = 'dist';
 //var container_path = '/var/dist';
 var mount = '/var/forest/mounts/builds';
 
-describe('Client', () => {
-	describe('Wrongly configured')
+var config = {
+	key: fs.readFileSync(__dirname + '/client.key'),
+	cert: fs.readFileSync(__dirname + '/client.crt'),
+	port: '8443',
+};
+
+describe('LXC', () => {
+	it('Throws an error when wrongly configured', () => {
+		new LXC(extend(config, { host: '10.0.0.5' })).list().should.be.rejected;
+	});
+
+	it('Returns results when rightly configured', () => {
+		new LXC(extend(config, { host: '10.0.0.2' })).list().should.eventually.be.a('array');
+	});
 });
 
 describe('LXC Module', () => {
 	var container;
 
-	describe('containers', () => {
-		it('Responds with a array', () => {
-			client.containers().should.eventually.be.a('array');
-		});
-	})
+	//describe('list', () => {
+		//it('Responds with a array', () => {
+			//client.containers().should.eventually.be.a('array');
+		//});
+	//})
 
 	/*
 	describe('launch', () => {
