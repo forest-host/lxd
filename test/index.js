@@ -12,37 +12,52 @@ import exec from 'utilities';
 
 import LXC from '../lib';
 
-var stat = Promise.promisify(fs.stat);
-
-var name = 'test';
-var image = 'test';
-var mount = '/var/forest/mounts/builds';
-
 var config = {
-	key: fs.readFileSync(__dirname + '/client.key'),
-	cert: fs.readFileSync(__dirname + '/client.crt'),
-	port: '8443',
-	host: '10.0.0.2',
+	client: {
+		key: fs.readFileSync(__dirname + '/client.key'),
+		cert: fs.readFileSync(__dirname + '/client.crt'),
+		port: '8443',
+		host: '10.0.0.2',
+	},
+	container: {
+		name: 'test',
+		image: 'test',
+		mount: {
+			source: '/var',
+			path: '/host_var',
+			name: 'test',
+		},
+		upload: {
+			source: __dirname + '/transfer.txt',
+			path: '/uploaded.txt',
+		},
+		download: {
+			source: '/transfer.txt',
+			path: __dirname + '/downloaded.txt',
+		},
+	},
 };
 
 var lxc;
+var container;
 
 describe('LXC Client', () => {
 	before(() => {
-		lxc = new LXC(config);
+		lxc = new LXC(config.client);
 	});
 
 	it('Throws an error when wrongly configured', () => {
-		new LXC(extend({}, config, { host: '10.0.0.5' })).list().should.be.rejected;
+		new LXC(extend({}, config.client, { host: '10.0.0.5' })).list().should.be.rejected;
 	});
 
 	it('Returns results when rightly configured', () => {
-		new LXC(config).list().should.not.be.rejected;
+		new LXC(config.client).list().should.not.be.rejected;
 	});
 
 	describe('get_container()', () => {
 		it('Returns container instance', () => {
-			lxc.get_container(name).should.be.a('object');
+			container = lxc.get_container(config.container.name);
+			container.should.be.a('object');
 		});
 	})
 
@@ -56,7 +71,7 @@ describe('LXC Client', () => {
 		it('Creates container', function() {
 			this.timeout(10000);
 
-			return lxc.launch(image, name)
+			return lxc.launch(config.container.image, config.container.name)
 				.then(container => container.get_state())
 				.should.eventually.have.property('status').that.equals('Running');
 		});
@@ -65,27 +80,27 @@ describe('LXC Client', () => {
 
 describe('Container', () => {
 	describe('wait_for_dhcp()', () => {
-		it('Returns after address after dhcp is done', function() {
+		it('Returns address after dhcp is done', function() {
 			this.timeout(10000);
 
-			return lxc.get_container(name).get_ipv4_addresses()
+			return container.get_ipv4_addresses()
 				.should.eventually.have.length(0)
-				.then(() => lxc.get_container(name).wait_for_dhcp())
-				.then(() => lxc.get_container(name).get_ipv4_addresses())
+				.then(() => container.wait_for_dhcp())
+				.then(() => container.get_ipv4_addresses())
 				.should.eventually.have.length(1);
 		});
 	});
 
 	describe('get_info()', () => {
 		it('Returns config of container', () => {
-			return lxc.get_container(name).get_info()
+			return container.get_info()
 				.then(config => config.should.have.property('name'));
 		});
 	});
 
 	describe('get_state()', () => {
 		it('returns state of container', () => {
-			return lxc.get_container(name).get_state()
+			return container.get_state()
 				.then(state => state.status.should.equal('Running'));
 		});
 	});
@@ -94,24 +109,49 @@ describe('Container', () => {
 		it('Executes command in container', function() {
 			this.timeout(10000);
 
-			return lxc.get_container(name).exec('hostname')
-				.then(output => output.stdout.should.contain(name));
+			return container.exec('hostname')
+				.then(output => output.stdout.should.contain(config.container.name));
 		});
 	});
 
-	describe('update', () => {
+	describe('patch()', () => {
 		it('Updates container config', () => {
-			return lxc.get_container(name)
-				.update({ config: { 'environment.CONTAINER_NAME': name } })
-				.should.eventually.have.property('config').that.has.property('environment.CONTAINER_NAME').that.equals(name);
+			return container
+				.patch({ config: { 'environment.CONTAINER_NAME': config.container.name } })
+				.should.eventually.have.property('config').that.has.property('environment.CONTAINER_NAME').that.equals(config.container.name);
 		});
+	});
+
+	describe('mount()', () => {
+		it('Mounts host path in container', () => {
+			return container
+				.mount(config.container.mount.source, config.container.mount.path, config.container.mount.name)
+				.then(() => container.exec('ls', [config.container.mount.path]))
+				.should.eventually.have.property('stdout').that.contains('lib');
+		});
+	});
+
+	describe('unmount()', () => {
+		it('Unmounts host path from container', () => {
+			return container.unmount(config.container.mount.name)
+				.then(() => container.exec('ls', [config.container.mount.path]))
+				.should.eventually.have.property('stdout').with.length(0);
+		})
+	});
+
+	describe('push_file()', () => {
+		it('Uploads a file to the container')
+	});
+
+	describe('pull_file()', () => {
+		it('Downloads a file from the container')
 	});
 
 	describe('delete()', () => {
 		it('Deletes container', function() {
 			this.timeout(10000);
 
-			return lxc.get_container(name).delete()
+			return container.delete()
 				.then(() => lxc.list())
 				.should.eventually.be.a('Array').with.length(0);
 		});
