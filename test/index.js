@@ -1,7 +1,7 @@
 
 import Promise from 'bluebird';
 import fs from 'fs';
-import {_extend as extend} from 'util';
+import extend from 'extend';
 
 import chai from 'chai';
 import chaiAsPromised from 'chai-as-promised';
@@ -15,124 +15,105 @@ import LXC from '../lib';
 var stat = Promise.promisify(fs.stat);
 
 var name = 'test';
-var image = 'builder';
-//var directory = 'dist';
-//var container_path = '/var/dist';
+var image = 'test';
 var mount = '/var/forest/mounts/builds';
 
 var config = {
 	key: fs.readFileSync(__dirname + '/client.key'),
 	cert: fs.readFileSync(__dirname + '/client.crt'),
 	port: '8443',
+	host: '10.0.0.2',
 };
 
-describe('LXC', () => {
+var lxc;
+
+describe('LXC Client', () => {
+	before(() => {
+		lxc = new LXC(config);
+	});
+
 	it('Throws an error when wrongly configured', () => {
-		new LXC(extend(config, { host: '10.0.0.5' })).list().should.be.rejected;
+		new LXC(extend({}, config, { host: '10.0.0.5' })).list().should.be.rejected;
 	});
 
 	it('Returns results when rightly configured', () => {
-		new LXC(extend(config, { host: '10.0.0.2' })).list().should.eventually.be.a('array');
+		new LXC(config).list().should.not.be.rejected;
+	});
+
+	describe('get_container()', () => {
+		it('Returns container instance', () => {
+			lxc.get_container(name).should.be.a('object');
+		});
+	})
+
+	describe('list()', () => {
+		it('Responds with a array', () => {
+			lxc.list().should.eventually.be.a('array');
+		});
+	})
+
+	describe('launch()', () => {
+		it('Creates container', function() {
+			this.timeout(10000);
+
+			return lxc.launch(image, name)
+				.then(container => container.get_state())
+				.should.eventually.have.property('status').that.equals('Running');
+		});
 	});
 });
 
-describe('LXC Module', () => {
-	var container;
+describe('Container', () => {
+	describe('wait_for_dhcp()', () => {
+		it('Returns after address after dhcp is done', function() {
+			this.timeout(10000);
 
-	//describe('list', () => {
-		//it('Responds with a array', () => {
-			//client.containers().should.eventually.be.a('array');
-		//});
-	//})
-
-	/*
-	describe('launch', () => {
-		it('Creates container', function() {
-			this.timeout(30000);
-			return client.launch(image, name)
-				.then(obj => container = obj)
-				.then(() => client.list())
-				.then(list => list.should.have.length(1))
-
-				// Get container when it exists to stop tests from failing
-				.catch(() => {
-					return client.get(name)
-						.then(obj => container = obj);
-				});
-		});
-	});
-	
-	describe('wait_for_dhcp', () => {
-		it('returns after address after dhcp is done', function() {
-			this.timeout(60000);
-
-			return container.state()
-				.then(state => {
-					var addresses = state.network.eth0.addresses.filter(address => {
-						return address.family == 'inet';
-					});
-
-					addresses.should.have.length(0);
-
-					return container.wait_for_dhcp();
-				})
-				.then(() => {
-					return container.state();
-				})
-				.then(state => {
-					var addresses = state.network.eth0.addresses.filter(address => {
-						return address.family == 'inet';
-					});
-
-					addresses.should.have.length(1);
-				});
+			return lxc.get_container(name).get_ipv4_addresses()
+				.should.eventually.have.length(0)
+				.then(() => lxc.get_container(name).wait_for_dhcp())
+				.then(() => lxc.get_container(name).get_ipv4_addresses())
+				.should.eventually.have.length(1);
 		});
 	});
 
-	describe('info', () => {
-		it('returns config of container', () => {
-			return container.info()
+	describe('get_info()', () => {
+		it('Returns config of container', () => {
+			return lxc.get_container(name).get_info()
 				.then(config => config.should.have.property('name'));
 		});
 	});
 
-	describe('state', () => {
+	describe('get_state()', () => {
 		it('returns state of container', () => {
-			return container.state()
+			return lxc.get_container(name).get_state()
 				.then(state => state.status.should.equal('Running'));
 		});
 	});
 
-	describe('list', () => {
-		it('Lists containers', () => {
-			return client.list()
-				.then(list => {
-					list.should.have.length(1);
-				});
-		});
-	});
-
-	describe('exec', () => {
+	describe('exec()', () => {
 		it('Executes command in container', function() {
 			this.timeout(10000);
 
-			return container.exec('hostname')
+			return lxc.get_container(name).exec('hostname')
 				.then(output => output.stdout.should.contain(name));
 		});
 	});
 
 	describe('update', () => {
-		var cpu = '1';
-
 		it('Updates container config', () => {
-			return container.update({
-				config: {
-					'limits.cpu': cpu
-				}
-			})
-			.then(info => {
-				info.config['limits.cpu'].should.equal(cpu);
-			});
+			return lxc.get_container(name)
+				.update({ config: { 'environment.CONTAINER_NAME': name } })
+				.should.eventually.have.property('config').that.has.property('environment.CONTAINER_NAME').that.equals(name);
+		});
+	});
+
+	describe('delete()', () => {
+		it('Deletes container', function() {
+			this.timeout(10000);
+
+			return lxc.get_container(name).delete()
+				.then(() => lxc.list())
+				.should.eventually.be.a('Array').with.length(0);
 		});
 	});
 
