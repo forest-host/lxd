@@ -32,7 +32,7 @@ var config = {
 			path: '/uploaded.txt',
 		},
 		download: {
-			source: '/transfer.txt',
+			source: '/uploaded.txt',
 			path: __dirname + '/downloaded.txt',
 		},
 	},
@@ -139,12 +139,21 @@ describe('Container', () => {
 		})
 	});
 
-	describe('push_file()', () => {
-		it('Uploads a file to the container')
+	describe('upload()', () => {
+		it('Uploads a file to the container', () => {
+			return container.upload(config.container.upload.source, config.container.upload.path)
+				// Check if file is there and contains correct string
+				.then(() => container.exec('cat', [config.container.upload.path]))
+				.should.eventually.have.property('stdout').that.contains(fs.readFileSync(config.container.upload.source).toString().replace('\n', ''));
+		})
 	});
 
-	describe('pull_file()', () => {
-		it('Downloads a file from the container')
+	describe('dowload()', () => {
+		it('Downloads a file from the container', () => {
+			return container.download(config.container.download.source, config.container.download.path)
+				.then(() => fs.readFileSync(config.container.download.path).toString())
+				.should.eventually.equal(fs.readFileSync(config.container.upload.source).toString());
+		})
 	});
 
 	describe('delete()', () => {
