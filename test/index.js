@@ -148,14 +148,6 @@ describe('Container', () => {
 		})
 	});
 
-	describe('dowload()', () => {
-		it('Downloads a file from the container', () => {
-			return container.download(config.container.download.source, config.container.download.path)
-				.then(() => fs.readFileSync(config.container.download.path).toString())
-				.should.eventually.equal(fs.readFileSync(config.container.upload.source).toString());
-		})
-	});
-
 	describe('delete()', () => {
 		it('Deletes container', function() {
 			this.timeout(10000);
@@ -165,93 +157,4 @@ describe('Container', () => {
 				.should.eventually.be.a('Array').with.length(0);
 		});
 	});
-
-	/*
-	describe('upload', () => {
-		var host_path = __dirname.replace('test', directory);
-
-		it('Does not accept relative paths', done => {
-			container.upload('../', container_path)
-				.then(() => done(new Error('Relative path accepted')))
-				.catch(() => done());
-		});
-
-		it('Copies data from host to container', () => {
-			return container.upload(host_path, container_path)
-				.then(() => container.exec('ls', [path.dirname(container_path)]))
-				.then(parse_output)
-				.then(split_newlines)
-				.then(lines => lines.should.contain(directory));
-		});
-
-		it('Errors when host path does not exist', () => {
-			return container.upload('/path/does/not/exist', container_path)
-				.then(() => {
-					throw new Error();
-				})
-				.catch(err => err.message.should.contain('not exist'));
-		});
-	});
-
-	describe('download', () => {
-		var host_path = '/tmp/testing';
-
-		it('Errors when container path does not exist', () => {
-			return container.download('/path/does/not/exist', host_path)
-				.then(() => {
-					throw new Error();
-				})
-				.catch(err => err.message.should.contain('not exist'));
-		});
-
-		it('Copies data from container to host', () => {
-			return container.download(container_path, host_path)
-				.then(() => exec('ls', [host_path]))
-				.then(parse_output)
-				.then(split_newlines)
-				.then(output => {
-					output.should.contain('index.js');
-				});
-		});
-
-		it('Errors when host path exists', () => {
-			return container.download(container_path, host_path)
-				.then(() => {
-					throw new Error();
-				})
-				.catch(err => err.message.should.contain('exists'));
-		});
-
-		// Remove tmp dir after
-		after(() => {
-			return exec('rm', ['-rf', host_path]);
-		});
-	});
-
-	// TODO - mount zfs block device
-	// Mount a share on container
-	describe('add_disk', () => {
-		var filename = 'test_mount';
-
-		it('Mounts data volume on container', () => {
-			return container.add_disk('test', mount, '/var/forest')
-				.then(() => container.exec('touch', ['/var/forest/'+filename]))
-				.then(() => stat(mount+'/'+filename))
-				.then(() => exec('rm', [mount+'/'+filename]));
-		});
-	});
-
-	describe('destroy', () => {
-		it('Destroys container', function() {
-			this.timeout(5000);
-			return container.destroy()
-				.then(() => client.list())
-				.then(list => list.should.have.length(0));
-		});
-	});
-
-	describe('unmount', () => {
-		it('Unmounts data volume from container');
-	});
-	*/
 });
