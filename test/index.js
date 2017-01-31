@@ -8,8 +8,6 @@ import chaiAsPromised from 'chai-as-promised';
 chai.should();
 chai.use(chaiAsPromised);
 
-import exec from 'utilities';
-
 import LXC from '../lib';
 
 var config = {
@@ -110,8 +108,13 @@ describe('Container', () => {
 			this.timeout(10000);
 
 			return container.exec('hostname')
-				.then(output => output.stdout.should.contain(config.container.name));
+				.should.eventually.contain(config.container.name);
 		});
+
+		it('Rejects promise for bad command', () => {
+			return container.exec('rm', ['/not/existing/directory'])
+				.should.be.rejected;
+		})
 	});
 
 	describe('patch()', () => {
@@ -127,7 +130,7 @@ describe('Container', () => {
 			return container
 				.mount(config.container.mount.source, config.container.mount.path, config.container.mount.name)
 				.then(() => container.exec('ls', [config.container.mount.path]))
-				.should.eventually.have.property('stdout').that.contains('lib');
+				.should.eventually.contain('lib');
 		});
 	});
 
@@ -135,7 +138,7 @@ describe('Container', () => {
 		it('Unmounts host path from container', () => {
 			return container.unmount(config.container.mount.name)
 				.then(() => container.exec('ls', [config.container.mount.path]))
-				.should.eventually.have.property('stdout').with.length(0);
+				.should.eventually.have.length(0);
 		})
 	});
 
@@ -144,7 +147,7 @@ describe('Container', () => {
 			return container.upload(config.container.upload.source, config.container.upload.path)
 				// Check if file is there and contains correct string
 				.then(() => container.exec('cat', [config.container.upload.path]))
-				.should.eventually.have.property('stdout').that.contains(fs.readFileSync(config.container.upload.source).toString().replace('\n', ''));
+				.should.eventually.contain(fs.readFileSync(config.container.upload.source).toString().replace('\n', ''));
 		})
 	});
 

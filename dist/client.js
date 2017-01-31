@@ -12,10 +12,6 @@ var _bluebird = require('bluebird');
 
 var _bluebird2 = _interopRequireDefault(_bluebird);
 
-var _utilities = require('utilities');
-
-var _utilities2 = _interopRequireDefault(_utilities);
-
 var _request = require('request');
 
 var _request2 = _interopRequireDefault(_request);
@@ -111,11 +107,13 @@ Client.prototype._process_websocket_response = function (data) {
 		});
 	}).then(function (output) {
 		// After getting output from sockets we need to get the statuscode from the operation
-		return _this._request('GET', '/operations/' + data.id).then(function (test) {
-			if (test.metadata.return !== 0) {
-				throw new Error('Process exited with error code ' + test.metadata.return);
+		return _this._request('GET', '/operations/' + data.id).then(function (operation) {
+			if (operation.metadata.return !== 0) {
+				// When return code reflects errors, send stderr
+				throw new Error(output.stderr);
 			} else {
-				return output;
+				// Otherwise all should be well and we can return stdout
+				return output.stdout;
 			}
 		});
 	});
