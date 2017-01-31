@@ -15,7 +15,7 @@ var config = {
 		key: fs.readFileSync(__dirname + '/client.key'),
 		cert: fs.readFileSync(__dirname + '/client.crt'),
 		port: '8443',
-		host: '10.0.0.2',
+		host: '10.0.0.1',
 	},
 	container: {
 		name: 'test',
