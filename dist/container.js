@@ -25,8 +25,45 @@ function Container(client, name) {
 	this.name = name;
 };
 
-Container.prototype._action = function (action, force) {
+/**
+ * Create container from lxc image
+ * @param {string} image - Image to create container from
+ * @param {object} config - Optional: config to pass directly on creation
+ */
+Container.prototype.create_from_image = function (image, config) {
 	var _this = this;
+
+	// Create container
+	return this._client._request('POST', '/containers', {
+		name: this.name,
+		architecture: 'x86_64',
+		profiles: ['default'],
+		ephemeral: false,
+		config: typeof config !== 'undefined' ? config : {},
+		source: {
+			type: 'image',
+			alias: image
+		}
+	})
+
+	// Return container instance
+	.then(function () {
+		return _this;
+	});
+};
+
+// Create and start a new container from image with name
+Container.prototype.launch = function (image, config) {
+	// Create container
+	return this.create_from_image(image, config)
+	// Start container
+	.then(function (container) {
+		return container.start();
+	});
+};
+
+Container.prototype._action = function (action, force) {
+	var _this2 = this;
 
 	if (typeof force === 'undefined') {
 		force = false;
@@ -40,7 +77,7 @@ Container.prototype._action = function (action, force) {
 		if (res.err) {
 			throw new Error(res.err);
 		}
-		return _this;
+		return _this2;
 	});
 };
 
@@ -56,10 +93,10 @@ Container.prototype.stop = function () {
 
 // Delete this container
 Container.prototype.delete = function () {
-	var _this2 = this;
+	var _this3 = this;
 
 	return this.stop().then(function () {
-		return _this2._client._request('DELETE', '/containers/' + _this2.name);
+		return _this3._client._request('DELETE', '/containers/' + _this3.name);
 	});
 };
 
@@ -68,10 +105,10 @@ Container.prototype.delete = function () {
  * @param {Object} config - Partial config to set on container
  */
 Container.prototype.patch = function (config) {
-	var _this3 = this;
+	var _this4 = this;
 
 	return this.get_info().then(function (info) {
-		return _this3.update((0, _extend2.default)(true, info, config));
+		return _this4.update((0, _extend2.default)(true, info, config));
 	});
 };
 
@@ -80,10 +117,10 @@ Container.prototype.patch = function (config) {
  * @param {Object} config - Full container info config to pass to container
  */
 Container.prototype.update = function (config) {
-	var _this4 = this;
+	var _this5 = this;
 
 	return this._client._request('PUT', '/containers/' + this.name, config).then(function () {
-		return _this4.get_info();
+		return _this5.get_info();
 	});
 };
 
@@ -106,7 +143,7 @@ Container.prototype.get_ipv4_addresses = function () {
 };
 
 Container.prototype.wait_for_dhcp = function () {
-	var _this5 = this;
+	var _this6 = this;
 
 	return this.get_ipv4_addresses().then(function (addresses) {
 		if (!addresses.length) {
@@ -114,7 +151,7 @@ Container.prototype.wait_for_dhcp = function () {
 			return new _bluebird2.default(function (resolve) {
 				return setTimeout(resolve, 500);
 			}).then(function () {
-				return _this5.wait_for_dhcp();
+				return _this6.wait_for_dhcp();
 			});
 		}
 
@@ -165,12 +202,12 @@ Container.prototype.mount = function (source, path, name) {
 };
 
 Container.prototype.unmount = function (name) {
-	var _this6 = this;
+	var _this7 = this;
 
 	return this.get_info().then(function (info) {
 		delete info.devices[name];
 
-		return _this6.update(info);
+		return _this7.update(info);
 	});
 };
 

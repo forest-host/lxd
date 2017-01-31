@@ -211,29 +211,6 @@ Client.prototype._process_async_response = function (body) {
 	}
 };
 
-// Create container
-Client.prototype.create = function (image, name, config) {
-	var _this4 = this;
-
-	// Create container
-	return this._request('POST', '/containers', {
-		name: name,
-		architecture: 'x86_64',
-		profiles: ['default'],
-		ephemeral: false,
-		config: typeof config !== 'undefined' ? config : {},
-		source: {
-			type: 'image',
-			alias: image
-		}
-	})
-
-	// Return container instance
-	.then(function () {
-		return _this4.get_container(name);
-	});
-};
-
 // Create and start a new container from image with name
 Client.prototype.launch = function (image, name, config) {
 	// Create container
