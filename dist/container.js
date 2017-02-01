@@ -142,6 +142,11 @@ Container.prototype.get_ipv4_addresses = function () {
 	});
 };
 
+// TODO - this can take forever when dhcp is down
+// Implement max_tries to fix this
+/**
+ * Resolve a promise when container has aquired a ip address
+ */
 Container.prototype.wait_for_dhcp = function () {
 	var _this6 = this;
 
@@ -155,7 +160,7 @@ Container.prototype.wait_for_dhcp = function () {
 			});
 		}
 
-		return addresses[0];
+		return _this6;
 	});
 };
 
