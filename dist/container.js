@@ -188,7 +188,12 @@ Container.prototype.exec = function (cmd, args, options) {
 	});
 };
 
-// Add mount
+/**
+ * Mount host path in container
+ * @param {string} source - Source path on host to mount in container
+ * @param {string} path - Path in container to mount on
+ * @param {string} name - Name of mount
+ */
 Container.prototype.mount = function (source, path, name) {
 	var config = { devices: {} };
 

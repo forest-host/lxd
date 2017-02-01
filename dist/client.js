@@ -4,9 +4,9 @@ var _stream = require('stream');
 
 var _stream2 = _interopRequireDefault(_stream);
 
-var _url = require('url');
+var _fs = require('fs');
 
-var parser = _interopRequireWildcard(_url);
+var _fs2 = _interopRequireDefault(_fs);
 
 var _bluebird = require('bluebird');
 
@@ -20,13 +20,13 @@ var _ws = require('ws');
 
 var _ws2 = _interopRequireDefault(_ws);
 
-var _util = require('util');
+var _extend = require('extend');
+
+var _extend2 = _interopRequireDefault(_extend);
 
 var _container = require('./container');
 
 var _container2 = _interopRequireDefault(_container);
-
-function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -42,13 +42,24 @@ function Client(config) {
 	};
 
 	// Overwrite defaults with config
-	this.config = (0, _util._extend)(defaults, config);
+	this.config = (0, _extend2.default)(defaults, config);
+
+	this.load_certificates();
 
 	// Set url
 	this.config.url = 'https://' + this.config.host + ':' + this.config.port + '/' + this.config.api_version;
 	this.config.websocket = 'wss://' + this.config.host + ':' + this.config.port + '/' + this.config.api_version;
 
 	return this;
+};
+
+Client.prototype.load_certificates = function () {
+	if (typeof this.config.cert == 'string') {
+		this.config.cert = _fs2.default.readFileSync(this.config.cert);
+	}
+	if (typeof this.config.key == 'string') {
+		this.config.key = _fs2.default.readFileSync(this.config.key);
+	}
 };
 
 // TODO - this is now the latter part of the container.exec funcion, move to container and keep this client stuff
