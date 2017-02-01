@@ -120,7 +120,7 @@ Container.prototype.update = function (config) {
 	var _this5 = this;
 
 	return this._client._request('PUT', '/containers/' + this.name, config).then(function () {
-		return _this5.get_info();
+		return _this5;
 	});
 };
 

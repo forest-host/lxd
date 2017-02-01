@@ -121,6 +121,7 @@ describe('Container', () => {
 		it('Updates container config', () => {
 			return container
 				.patch({ config: { 'environment.CONTAINER_NAME': config.container.name } })
+				.then(() => container.get_info())
 				.should.eventually.have.property('config').that.has.property('environment.CONTAINER_NAME').that.equals(config.container.name);
 		});
 	});
@@ -155,6 +156,7 @@ describe('Container', () => {
 		it('Deletes container', function() {
 			this.timeout(10000);
 
+			// TODO - when other containers are running this test fails
 			return container.delete()
 				.then(() => lxc.list())
 				.should.eventually.be.a('Array').with.length(0);
