@@ -12,8 +12,8 @@ import LXC from '../lib';
 
 var config = {
 	client: {
-		key: fs.readFileSync(__dirname + '/client.key'),
-		cert: fs.readFileSync(__dirname + '/client.crt'),
+		key: '/etc/forest/lxd/client.key',
+		cert: '/etc/forest/lxd/client.crt',
 		port: '8443',
 		host: '10.0.0.1',
 	},
