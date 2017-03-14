@@ -53,6 +53,9 @@ function Client(config) {
 	return this;
 };
 
+/**
+ * Make sure we got a file buffer for cert & key
+ */
 Client.prototype.load_certificates = function () {
 	if (typeof this.config.cert == 'string') {
 		this.config.cert = _fs2.default.readFileSync(this.config.cert);
@@ -63,11 +66,15 @@ Client.prototype.load_certificates = function () {
 };
 
 // TODO - this is now the latter part of the container.exec funcion, move to container and keep this client stuff
+/**
+ * Process response from lxd API that requires listening to websockets
+ * @param {Object} data - Data returned from LXD api containing ws locations etc.
+ */
 Client.prototype._process_websocket_response = function (data) {
 	var _this = this;
 
 	return new _bluebird2.default(function (resolve) {
-		// Helpful names
+		// Get us some helpfull names
 		var socket_map = {
 			'0': 'stdin',
 			'1': 'stdout',
@@ -77,15 +84,18 @@ Client.prototype._process_websocket_response = function (data) {
 
 		var sockets = {};
 
-		// Output for promise return
+		// Collect output of sockets in arrays
 		var output = {
 			stdout: [],
 			stderr: []
 		};
 
+		// We would like to listen to each socket
 		Object.keys(data.metadata.fds).map(function (key) {
+			// Generate url from data
 			var url = _this.config.websocket + '/operations/' + data.id + '/websocket?secret=' + data.metadata.fds[key];
 
+			// Create socket listening to url
 			sockets[socket_map[key]] = new _ws2.default(url, {
 				cert: _this.config.cert,
 				key: _this.config.key,
@@ -94,21 +104,20 @@ Client.prototype._process_websocket_response = function (data) {
 			});
 		});
 
-		// Push messages to output array
-		sockets.stdout.on('message', function (data) {
-			var string = data.toString('utf8').trim();
-			if (string) {
-				output.stdout = output.stdout.concat(string.split('\n'));
-			}
-		});
-		sockets.stderr.on('message', function (data) {
-			var string = data.toString('utf8').trim();
-			if (string) {
-				output.stderr = output.stderr.concat(string.split('\n'));
-			}
+		// Keep track of stderr & stdout streams
+		['stdout', 'stderr'].forEach(function (stream) {
+			// Push messages to output array
+			sockets[stream].on('message', function (data) {
+				// Clean string
+				var string = data.toString('utf8').trim();
+				if (string) {
+					// Split output on newlines
+					output[stream] = output[stream].concat(string.split('\n'));
+				}
+			});
 		});
 
-		// Control socket closes when done
+		// Control socket closes when done executing
 		sockets.control.on('close', function () {
 			sockets.stdin.close();
 			sockets.stdout.close();
@@ -116,8 +125,10 @@ Client.prototype._process_websocket_response = function (data) {
 
 			resolve(output);
 		});
-	}).then(function (output) {
-		// After getting output from sockets we need to get the statuscode from the operation
+	})
+
+	// After getting output from sockets we need to get the statuscode from the operation
+	.then(function (output) {
 		return _this._request('GET', '/operations/' + data.id).then(function (operation) {
 			if (operation.metadata.return !== 0) {
 				// When return code reflects errors, send stderr
