@@ -1,9 +1,5 @@
 'use strict';
 
-var _fs = require('fs');
-
-var _fs2 = _interopRequireDefault(_fs);
-
 var _bluebird = require('bluebird');
 
 var _bluebird2 = _interopRequireDefault(_bluebird);
@@ -11,6 +7,8 @@ var _bluebird2 = _interopRequireDefault(_bluebird);
 var _extend = require('extend');
 
 var _extend2 = _interopRequireDefault(_extend);
+
+var _stream = require('stream');
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -211,6 +209,10 @@ Container.prototype.mount = function (source, path, name) {
 	return this.patch(config);
 };
 
+/**
+ * Unmount a device from container
+ * @param {String} name - Name of mounted device
+ */
 Container.prototype.unmount = function (name) {
 	var _this7 = this;
 
@@ -221,8 +223,25 @@ Container.prototype.unmount = function (name) {
 	});
 };
 
-Container.prototype.upload = function (source, path) {
-	return this._client._request('POST', '/containers/' + this.name + '/files?path=' + path, _fs2.default.createReadStream(source));
+/**
+ * Creat readable stream from string
+ * @param {String} string - string to convert to stream
+ */
+function create_stream_from_string(string) {
+	var stream = new _stream.Readable();
+	stream.push(string);
+	stream.push(null);
+
+	return stream;
+}
+
+/**
+ * Upload content to file in container
+ * @param {Mixed} content - String or read stream to upload
+ * @param {String} path - Path in container to put content
+ */
+Container.prototype.upload = function (content, path) {
+	return this._client._request('POST', '/containers/' + this.name + '/files?path=' + path, typeof content === 'string' ? create_stream_from_string(content) : content);
 };
 
 module.exports = Container;

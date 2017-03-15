@@ -25,6 +25,10 @@ var config = {
 			path: '/host_var',
 			name: 'test',
 		},
+		upload_string: {
+			source: 'this is an uploaded string',
+			path: '/uploaded_string.txt',
+		},
 		upload: {
 			source: __dirname + '/transfer.txt',
 			path: '/uploaded.txt',
@@ -79,7 +83,7 @@ describe('LXC Client', () => {
 describe('Container', () => {
 	describe('wait_for_dhcp()', () => {
 		it('Returns address after dhcp is done', function() {
-			this.timeout(10000);
+			this.timeout(15000);
 
 			return container.get_ipv4_addresses()
 				.should.eventually.have.length(0)
@@ -144,8 +148,14 @@ describe('Container', () => {
 	});
 
 	describe('upload()', () => {
+		it('Uploads a string to a file in container', () => {
+			return container.upload(config.container.upload_string.source, config.container.upload_string.path)
+				.then(() => container.exec('cat', [config.container.upload_string.path]))
+				.should.eventually.contain(config.container.upload_string.source);
+		})
+
 		it('Uploads a file to the container', () => {
-			return container.upload(config.container.upload.source, config.container.upload.path)
+			return container.upload(fs.createReadStream(config.container.upload.source), config.container.upload.path)
 				// Check if file is there and contains correct string
 				.then(() => container.exec('cat', [config.container.upload.path]))
 				.should.eventually.contain(fs.readFileSync(config.container.upload.source).toString().replace('\n', ''));
