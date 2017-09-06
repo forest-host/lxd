@@ -19,7 +19,7 @@ var config = {
 	},
 	container: {
 		name: 'test',
-		image: 'test',
+		image: 'application-php7',
 		mount: {
 			source: '/var',
 			path: '/host_var',
@@ -151,11 +151,11 @@ BqXMFNdXRsJeBrAaLGw5GAyGMhSVJuABUWca+oHLpXsQ7xzHTqnfJQ==
 
 			return container
 				.patch({ config: { 'environment.PRIVATE_KEY': key }})
-				.then(() => container.exec('echo', ['$PRIVATE_KEY', '>', '/test']))
-				//.then(() => container.get_info())
-				//.then(info => info.config['environment.PRIVATE_KEY'])
+				//.then(() => container.exec('echo', ['$PRIVATE_KEY', '>', '/test']))
+				//.then(() => container.exec('cat', ['/test']))
+				.then(() => container.get_info())
+				.then(info => info.config['environment.PRIVATE_KEY'])
 				.then(output => {
-					console.log(output);
 					output.should.equal(key);
 				});
 		});
