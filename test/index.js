@@ -12,14 +12,14 @@ import LXC from '../lib';
 
 var config = {
 	client: {
-		key: '/etc/forest/lxd/client.key',
-		cert: '/etc/forest/lxd/client.crt',
+		key: '/home/johan/.config/lxc/client.key',
+		cert: '/home/johan/.config/lxc/client.crt',
 		port: '8443',
-		host: '10.0.0.1',
+		host: '10.254.254.254',
 	},
 	container: {
 		name: 'test',
-		image: 'application-php7',
+		image: 'application-php',
 		mount: {
 			source: '/var',
 			path: '/host_var',
