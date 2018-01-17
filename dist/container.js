@@ -32,8 +32,8 @@ function Container(client, name) {
 Container.prototype.create_from_image = function (image, config, profiles) {
 	var _this = this;
 
-	// Create container
-	return this._client._request('POST', '/containers', {
+	// Setup data
+	var body = {
 		name: this.name,
 		architecture: 'x86_64',
 		profiles: profiles || ['default'],
@@ -43,7 +43,10 @@ Container.prototype.create_from_image = function (image, config, profiles) {
 			type: 'image',
 			alias: image
 		}
-	})
+	};
+
+	// Create container
+	return this._client._request('POST', '/containers', body)
 
 	// Return container instance
 	.then(function () {
