@@ -98,11 +98,20 @@ Container.prototype.stop = function () {
 	return this._action('stop');
 };
 
-// Delete this container
+/**
+ * Delete container
+ */
 Container.prototype.delete = function () {
 	var _this3 = this;
 
-	return this.stop().then(function () {
+	return this.stop().catch(function (err) {
+		// That's okay
+		if (err.message.indexOf('already stopped') != -1) {
+			return;
+		}
+
+		throw err;
+	}).then(function () {
 		return _this3._client._request('DELETE', '/containers/' + _this3.name);
 	});
 };
