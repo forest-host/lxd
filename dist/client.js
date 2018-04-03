@@ -130,13 +130,11 @@ Client.prototype._process_websocket_response = function (data) {
 	// After getting output from sockets we need to get the statuscode from the operation
 	.then(function (output) {
 		return _this._request('GET', '/operations/' + data.id).then(function (operation) {
-			if (operation.metadata.return !== 0) {
-				// When return code reflects errors, send stderr
-				throw new Error(output.stderr);
-			} else {
-				// Otherwise all should be well and we can return stdout
-				return output.stdout;
-			}
+			// Set exit code
+			output.status = operation.metadata.return;
+
+			// Return exit code & stderr & stdout
+			return output;
 		});
 	});
 };
