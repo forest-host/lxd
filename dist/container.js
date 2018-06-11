@@ -109,6 +109,9 @@ Container.prototype.delete = function () {
 		if (err.message.indexOf('already stopped') != -1) {
 			return;
 		}
+		if (err.message.indexOf('Container is not running') != -1) {
+			return;
+		}
 
 		throw err;
 	}).then(function () {
