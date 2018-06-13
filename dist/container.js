@@ -154,11 +154,7 @@ Container.prototype.get_state = function () {
 };
 
 Container.prototype.get_ipv4_addresses = function () {
-	var _this6 = this;
-
 	return this.get_state().then(function (state) {
-		console.log(_this6.name);
-		console.log(state);
 		return state.network.eth0.addresses.filter(function (address) {
 			return address.family == 'inet';
 		});
@@ -171,7 +167,7 @@ Container.prototype.get_ipv4_addresses = function () {
  * Resolve a promise when container has aquired a ip address
  */
 Container.prototype.wait_for_dhcp = function () {
-	var _this7 = this;
+	var _this6 = this;
 
 	return this.get_ipv4_addresses().then(function (addresses) {
 		if (!addresses.length) {
@@ -179,11 +175,11 @@ Container.prototype.wait_for_dhcp = function () {
 			return new _bluebird2.default(function (resolve) {
 				return setTimeout(resolve, 500);
 			}).then(function () {
-				return _this7.wait_for_dhcp();
+				return _this6.wait_for_dhcp();
 			});
 		}
 
-		return _this7;
+		return _this6;
 	});
 };
 
@@ -239,12 +235,12 @@ Container.prototype.mount = function (source, path, name) {
  * @param {String} name - Name of mounted device
  */
 Container.prototype.unmount = function (name) {
-	var _this8 = this;
+	var _this7 = this;
 
 	return this.get_info().then(function (info) {
 		delete info.devices[name];
 
-		return _this8.update(info);
+		return _this7.update(info);
 	});
 };
 
