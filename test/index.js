@@ -15,7 +15,7 @@ var config = {
 		key: '/home/johan/.config/lxc/client.key',
 		cert: '/home/johan/.config/lxc/client.crt',
 		port: '8443',
-		host: '10.254.254.254',
+		host: '127.0.0.1',
 	},
 	container: {
 		name: 'test',
@@ -75,7 +75,7 @@ describe('LXC Client', () => {
 
 			return lxc.get_container(config.container.name).launch(config.container.image)
 				.then(container => container.get_state())
-				.should.eventually.have.property('status').that.equals('Running');
+				.should.eventually.have.property('status').that.equals('Running')
 		});
 	});
 });
@@ -112,12 +112,15 @@ describe('Container', () => {
 			this.timeout(10000);
 
 			return container.exec('hostname')
+				.then(obj => obj.stdout[0])
+				// TODO returns object
 				.should.eventually.contain(config.container.name);
 		});
 
 		it('Rejects promise for bad command', () => {
 			return container.exec('rm', ['/not/existing/directory'])
-				.should.be.rejected;
+				.then(obj => obj.status)
+				.should.eventually.equal(1);
 		});
 
 		it('Correctly handles multiline variables', () => {
@@ -175,6 +178,7 @@ BqXMFNdXRsJeBrAaLGw5GAyGMhSVJuABUWca+oHLpXsQ7xzHTqnfJQ==
 			return container
 				.mount(config.container.mount.source, config.container.mount.path, config.container.mount.name)
 				.then(() => container.exec('ls', [config.container.mount.path]))
+				.then(obj => obj.stdout)
 				.should.eventually.contain('lib');
 		});
 	});
@@ -183,6 +187,7 @@ BqXMFNdXRsJeBrAaLGw5GAyGMhSVJuABUWca+oHLpXsQ7xzHTqnfJQ==
 		it('Unmounts host path from container', () => {
 			return container.unmount(config.container.mount.name)
 				.then(() => container.exec('ls', [config.container.mount.path]))
+				.then(obj => obj.stdout)
 				.should.eventually.have.length(0);
 		})
 	});
@@ -191,6 +196,7 @@ BqXMFNdXRsJeBrAaLGw5GAyGMhSVJuABUWca+oHLpXsQ7xzHTqnfJQ==
 		it('Uploads a string to a file in container', () => {
 			return container.upload(config.container.upload_string.source, config.container.upload_string.path)
 				.then(() => container.exec('cat', [config.container.upload_string.path]))
+				.then(obj => obj.stdout)
 				.should.eventually.contain(config.container.upload_string.source);
 		})
 
@@ -198,6 +204,7 @@ BqXMFNdXRsJeBrAaLGw5GAyGMhSVJuABUWca+oHLpXsQ7xzHTqnfJQ==
 			return container.upload(fs.createReadStream(config.container.upload.source), config.container.upload.path)
 				// Check if file is there and contains correct string
 				.then(() => container.exec('cat', [config.container.upload.path]))
+				.then(obj => obj.stdout)
 				.should.eventually.contain(fs.readFileSync(config.container.upload.source).toString().replace('\n', ''));
 		})
 	});
@@ -209,7 +216,7 @@ BqXMFNdXRsJeBrAaLGw5GAyGMhSVJuABUWca+oHLpXsQ7xzHTqnfJQ==
 			// TODO - when other containers are running this test fails
 			return container.delete()
 				.then(() => lxc.list())
-				.should.eventually.be.a('Array').with.length(0);
+				.should.eventually.be.a('Array').that.not.contains(config.container.name);
 		});
 	});
 });
