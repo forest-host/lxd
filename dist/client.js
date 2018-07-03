@@ -207,6 +207,7 @@ Client.prototype._process_response = function (body) {
 			return body.metadata;
 		// Not good
 		case 'error':
+			console.log(body);
 			throw new Error(body.error);
 		// We can't handle this
 		default:
