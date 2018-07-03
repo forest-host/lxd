@@ -12,9 +12,9 @@ var _bluebird = require('bluebird');
 
 var _bluebird2 = _interopRequireDefault(_bluebird);
 
-var _request = require('request');
+var _requestPromise = require('request-promise');
 
-var _request2 = _interopRequireDefault(_request);
+var _requestPromise2 = _interopRequireDefault(_requestPromise);
 
 var _ws = require('ws');
 
@@ -65,77 +65,78 @@ Client.prototype.load_certificates = function () {
 	}
 };
 
-// TODO - this is now the latter part of the container.exec funcion, move to container and keep this client stuff
 /**
- * Process response from lxd API that requires listening to websockets
- * @param {Object} data - Data returned from LXD api containing ws locations etc.
+ * Get config used for all API requests
  */
-Client.prototype._process_websocket_response = function (data) {
+Client.prototype.get_request_config = function (method, path, data) {
+	return {
+		url: this.config.url + path,
+		agentOptions: {
+			cert: this.config.cert,
+			key: this.config.key,
+			port: this.config.port,
+			rejectUnauthorized: false
+		},
+		method: method,
+		// Check if data is a stream, if not, everything will be json
+		json: typeof data !== 'undefined' ? !(data instanceof _stream2.default.Readable) : true,
+		// As we are always using json, send empty object when no data is set
+		body: typeof data !== 'undefined' ? data : {}
+	};
+};
+
+/**
+ * Get websocket that receives all lxd events
+ */
+Client.prototype.get_events_socket = function () {
+	var url = this.config.websocket + '/events?type=operation';
+
+	var socket = new _ws2.default(url, {
+		cert: this.config.cert,
+		key: this.config.key,
+		port: this.config.port,
+		rejectUnauthorized: false
+	});
+
+	return socket;
+};
+
+/**
+ * Run asynchronous backend operation
+ */
+Client.prototype.run_async_operation = function (method, path, data) {
 	var _this = this;
 
-	return new _bluebird2.default(function (resolve) {
-		// Get us some helpfull names
-		var socket_map = {
-			'0': 'stdin',
-			'1': 'stdout',
-			'2': 'stderr',
-			'control': 'control'
-		};
+	// Get events listener before executing operation
+	var events = this.get_events_socket();
 
-		var sockets = {};
+	// Request an operation
+	return this.request(method, path, data)
 
-		// Collect output of sockets in arrays
-		var output = {
-			stdout: [],
-			stderr: []
-		};
+	// Wait for operation event
+	.then(function (body) {
+		switch (body.metadata.class) {
+			case 'task':
+				return _this.process_task_operation(events, body.metadata);
+			case 'websocket':
+				return _this.process_websocket_operation(body.metadata);
+			case 'token':
+				return body.metadata;
+			default:
+				throw new Error('API returned unknown operation class');
+		}
+	}).then(function (output) {
+		events.close();
+		return output;
+	});
+};
 
-		// We would like to listen to each socket
-		Object.keys(data.metadata.fds).map(function (key) {
-			// Generate url from data
-			var url = _this.config.websocket + '/operations/' + data.id + '/websocket?secret=' + data.metadata.fds[key];
-
-			// Create socket listening to url
-			sockets[socket_map[key]] = new _ws2.default(url, {
-				cert: _this.config.cert,
-				key: _this.config.key,
-				port: _this.config.port,
-				rejectUnauthorized: false
-			});
-		});
-
-		// Keep track of stderr & stdout streams
-		['stdout', 'stderr'].forEach(function (stream) {
-			// Push messages to output array
-			sockets[stream].on('message', function (data) {
-				// Clean string
-				var string = data.toString('utf8').trim();
-				if (string) {
-					// Split output on newlines
-					output[stream] = output[stream].concat(string.split('\n'));
-				}
-			});
-		});
-
-		// Control socket closes when done executing
-		sockets.control.on('close', function () {
-			sockets.stdin.close();
-			sockets.stdout.close();
-			sockets.stderr.close();
-
-			resolve(output);
-		});
-	})
-
-	// After getting output from sockets we need to get the statuscode from the operation
-	.then(function (output) {
-		return _this._request('GET', '/operations/' + data.id).then(function (operation) {
-			// Set exit code
-			output.status = operation.metadata.return;
-
-			// Return exit code & stderr & stdout
-			return output;
-		});
+/**
+ * Run synchronous operation
+ */
+Client.prototype.run_sync_operation = function (method, path, data) {
+	return this.request(method, path, data).then(function (body) {
+		return body.metadata;
 	});
 };
 
@@ -145,91 +146,107 @@ Client.prototype._process_websocket_response = function (data) {
  * @param {string} path - Path to request
  * @param {string} data - JSON data to send
  */
-Client.prototype._request = function (method, path, data) {
-	var _this2 = this;
+Client.prototype.request = function (method, path, data) {
+	// Actually make the request
+	return (0, _requestPromise2.default)(this.get_request_config(method, path, data))
 
-	return this._make_request(method, path, data).then(function (body) {
-		return _this2._process_response(body);
+	// Handle response
+	.then(function (body) {
+		// API response is not parsed on uploads
+		if (typeof body === 'string') body = JSON.parse(body);
+
+		if (body.type == 'error') throw new Error(body.error);
+
+		return body;
 	});
 };
 
 /**
- * Create request for LXD API
- * @param {string} method - GET / PUT / POST etc.
- * @param {string} path - Url path for request (/containers etc.)
- * @param {object} data - Data to send, mostly json, file stream otherwise
+ * Process task operation
  */
-Client.prototype._make_request = function (method, path, data) {
-	var _this3 = this;
-
+Client.prototype.process_task_operation = function (events, metadata) {
 	return new _bluebird2.default(function (resolve, reject) {
-		var config = {
-			url: _this3.config.url + path,
-			agentOptions: {
-				cert: _this3.config.cert,
-				key: _this3.config.key,
-				port: _this3.config.port,
-				rejectUnauthorized: false
-			},
-			method: method,
-			// Check if data is a stream, if not, everything will be json
-			json: typeof data !== 'undefined' ? !(data instanceof _stream2.default.Readable) : true,
-			// As we are always using json, send empty object when no data is set
-			body: typeof data !== 'undefined' ? data : {}
-		};
+		events.on('message', function (data) {
+			data = JSON.parse(data).metadata;
 
-		var req = (0, _request2.default)(config, function (err, res, body) {
-			if (err) {
-				reject(err);
-			} else {
-				resolve(body);
-			}
+			// Don't handle events for other operations
+			if (data.id != metadata.id) return;
+
+			// Success
+			if (data.status_code == 200) resolve(data);
+
+			// Failure
+			if (data.status_code == 400 || data.status_code == 401) reject(new Error(data.err));
 		});
 	});
 };
 
 /**
- * Process response from LXD api
- * @param {Object} body - JSON returned from LXD API.
+ * Process websocket operation of lxd api by connecting to sockets
+ * @param {Object} metadata - Metadata returned from LXD api containing ws locations etc.
  */
-Client.prototype._process_response = function (body) {
-	// API response is not parsed on uploads
-	if (typeof body === 'string') {
-		body = JSON.parse(body);
-	}
+Client.prototype.process_websocket_operation = function (metadata) {
+	var _this2 = this;
 
-	switch (body.type) {
-		// We have to wait for this operation
-		case 'async':
-			return this._process_async_response(body);
-		// What's done is done
-		case 'sync':
-			return body.metadata;
-		// Not good
-		case 'error':
-			console.log(body.error);
-			throw new Error(body.error);
-		// We can't handle this
-		default:
-			throw new Error('API returned unknown body type');
-	}
-};
+	// Get us some helpfull names
+	var socket_map = {
+		'0': 'stdin',
+		'1': 'stdout',
+		'2': 'stderr',
+		'control': 'control'
+	};
 
-/**
- * Process async response from LXD api
- * @param {Object} body - JSON returned from LXD API.
- */
-Client.prototype._process_async_response = function (body) {
-	switch (body.metadata.class) {
-		case 'task':
-			return this._request('GET', '/operations/' + body.metadata.id + '/wait');
-		case 'websocket':
-			return this._process_websocket_response(body.metadata);
-		case 'token':
-			return body.metadata;
-		default:
-			throw new Error('API returned unknown operation class');
-	}
+	var sockets = {};
+
+	// Collect output of sockets in arrays
+	var output = {
+		stdout: [],
+		stderr: []
+	};
+
+	// We would like to listen to each socket
+	Object.keys(metadata.metadata.fds).map(function (key) {
+		// Generate url from metadata
+		var url = _this2.config.websocket + '/operations/' + metadata.id + '/websocket?secret=' + metadata.metadata.fds[key];
+
+		// Create socket listening to url
+		sockets[socket_map[key]] = new _ws2.default(url, {
+			cert: _this2.config.cert,
+			key: _this2.config.key,
+			port: _this2.config.port,
+			rejectUnauthorized: false
+		});
+	});
+
+	// Keep track of stderr & stdout streams
+	['stdout', 'stderr'].forEach(function (stream) {
+		// Create arrays of lines of output
+		sockets[stream].on('message', function (data) {
+			var string = data.toString('utf8').trim();
+
+			if (string) {
+				output[stream] = output[stream].concat(string.split('\n'));
+			}
+		});
+	});
+
+	return new _bluebird2.default(function (resolve) {
+		// Control socket closes when done executing
+		sockets.control.on('close', function () {
+			sockets.stdin.close();
+			sockets.stdout.close();
+			sockets.stderr.close();
+
+			// After getting output from sockets we need to get the statuscode from the operation
+			_this2.run_sync_operation('GET', '/operations/' + metadata.id).then(function (operation) {
+				// Set exit code
+				output.status = operation.metadata.return;
+
+				// Return exit code & stderr & stdout
+				resolve(output);
+			});
+		});
+	});
 };
 
 // Get container instance
@@ -240,7 +257,7 @@ Client.prototype.get_container = function (name) {
 
 // Get json list of containers
 Client.prototype.list = function () {
-	return this._request('GET', '/containers');
+	return this.run_sync_operation('GET', '/containers');
 };
 
 module.exports = Client;

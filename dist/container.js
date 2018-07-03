@@ -19,7 +19,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  * @param {string} name - Name of the container we will operate on.
  */
 function Container(client, name) {
-	this._client = client;
+	this.client = client;
 	this.name = name;
 };
 
@@ -46,7 +46,7 @@ Container.prototype.create_from_image = function (image, config, profiles) {
 	};
 
 	// Create container
-	return this._client._request('POST', '/containers', body)
+	return this.client.run_async_operation('POST', '/containers', body)
 
 	// Return container instance
 	.then(function () {
@@ -69,14 +69,14 @@ Container.prototype.launch = function (image, config, profiles) {
  * @param {String} action - Action to execute
  * @param {Boolean} force - Whether to force execution
  */
-Container.prototype._action = function (action, force) {
+Container.prototype.action = function (action, force) {
 	var _this2 = this;
 
 	if (typeof force === 'undefined') {
 		force = false;
 	}
 
-	return this._client._request('PUT', '/containers/' + this.name + '/state', {
+	return this.client.run_async_operation('PUT', '/containers/' + this.name + '/state', {
 		action: action,
 		timeout: 30,
 		force: force
@@ -90,12 +90,12 @@ Container.prototype._action = function (action, force) {
 
 // Start this container
 Container.prototype.start = function () {
-	return this._action('start');
+	return this.action('start');
 };
 
 // Stop this container
 Container.prototype.stop = function () {
-	return this._action('stop', true);
+	return this.action('stop', true);
 };
 
 /**
@@ -115,7 +115,7 @@ Container.prototype.delete = function () {
 
 		throw err;
 	}).then(function () {
-		return _this3._client._request('DELETE', '/containers/' + _this3.name);
+		return _this3.client.run_async_operation('DELETE', '/containers/' + _this3.name);
 	});
 };
 
@@ -138,19 +138,19 @@ Container.prototype.patch = function (config) {
 Container.prototype.update = function (config) {
 	var _this5 = this;
 
-	return this._client._request('PUT', '/containers/' + this.name, config).then(function () {
+	return this.client.run_async_operation('PUT', '/containers/' + this.name, config).then(function () {
 		return _this5;
 	});
 };
 
 // Get config of this container from lxc list
 Container.prototype.get_info = function () {
-	return this._client._request('GET', '/containers/' + this.name);
+	return this.client.run_sync_operation('GET', '/containers/' + this.name);
 };
 
 // Get state of container
 Container.prototype.get_state = function () {
-	return this._client._request('GET', '/containers/' + this.name + '/state');
+	return this.client.run_sync_operation('GET', '/containers/' + this.name + '/state');
 };
 
 Container.prototype.get_ipv4_addresses = function () {
@@ -204,7 +204,7 @@ Container.prototype.exec = function (cmd, args, options) {
 	cmd += args.length ? ' ' + args.join(' ') : '';
 
 	// Run command with joined args on container
-	return this._client._request('POST', '/containers/' + this.name + '/exec', {
+	return this.client.run_async_operation('POST', '/containers/' + this.name + '/exec', {
 		command: ['/bin/bash', '-c', cmd],
 		environment: options.environment || {},
 		'wait-for-websocket': true,
@@ -262,7 +262,7 @@ function create_stream_from_string(string) {
  * @param {String} path - Path in container to put content
  */
 Container.prototype.upload = function (content, path) {
-	return this._client._request('POST', '/containers/' + this.name + '/files?path=' + path, typeof content === 'string' ? create_stream_from_string(content) : content);
+	return this.client.run_sync_operation('POST', '/containers/' + this.name + '/files?path=' + path, typeof content === 'string' ? create_stream_from_string(content) : content);
 };
 
 module.exports = Container;
