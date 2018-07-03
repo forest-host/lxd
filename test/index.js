@@ -20,11 +20,6 @@ var config = {
 	container: {
 		name: 'test',
 		image: 'application-php',
-		mount: {
-			source: '/var',
-			path: '/host_var',
-			name: 'test',
-		},
 		upload_string: {
 			source: 'this is an uploaded string',
 			path: '/uploaded_string.txt',
@@ -164,25 +159,6 @@ BqXMFNdXRsJeBrAaLGw5GAyGMhSVJuABUWca+oHLpXsQ7xzHTqnfJQ==
 				.then(() => container.get_info())
 				.should.eventually.have.property('config').that.has.property('environment.CONTAINER_NAME').that.equals(config.container.name);
 		});
-	});
-
-	describe('mount()', () => {
-		it('Mounts host path in container', () => {
-			return container
-				.mount(config.container.mount.source, config.container.mount.path, config.container.mount.name)
-				.then(() => container.exec('ls', [config.container.mount.path]))
-				.then(obj => obj.stdout)
-				.should.eventually.contain('lib');
-		});
-	});
-
-	describe('unmount()', () => {
-		it('Unmounts host path from container', () => {
-			return container.unmount(config.container.mount.name)
-				.then(() => container.exec('ls', [config.container.mount.path]))
-				.then(obj => obj.stdout)
-				.should.eventually.have.length(0);
-		})
 	});
 
 	describe('upload()', () => {
