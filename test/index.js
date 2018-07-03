@@ -40,14 +40,10 @@ var config = {
 	},
 };
 
-var lxc;
-var container;
+var lxc = new LXC(config.client);
+var container = lxc.get_container(config.container.name);
 
 describe('LXC Client', () => {
-	before(() => {
-		lxc = new LXC(config.client);
-	});
-
 	it('Throws an error when wrongly configured', () => {
 		new LXC(extend({}, config.client, { host: '10.0.0.5' })).list().should.be.rejected;
 	});
@@ -58,7 +54,6 @@ describe('LXC Client', () => {
 
 	describe('get_container()', () => {
 		it('Returns container instance', () => {
-			container = lxc.get_container(config.container.name);
 			container.should.be.a('object');
 		});
 	});
@@ -83,11 +78,9 @@ describe('LXC Client', () => {
 describe('Container', () => {
 	describe('wait_for_dhcp()', () => {
 		it('Returns address after dhcp is done', function() {
-			this.timeout(15000);
+			this.timeout(40000);
 
-			return container.get_ipv4_addresses()
-				.should.eventually.have.length(0)
-				.then(() => container.wait_for_dhcp())
+			return container.wait_for_dhcp()
 				.then(() => container.get_ipv4_addresses())
 				.should.eventually.have.length(1);
 		});
