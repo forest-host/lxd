@@ -240,7 +240,7 @@ function get_mounts_as_devices(mounts) {
 			type: 'disk'
 		};
 		return aggregate;
-	});
+	}, {});
 }
 
 /**
