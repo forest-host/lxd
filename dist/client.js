@@ -28,6 +28,10 @@ var _container = require('./container');
 
 var _container2 = _interopRequireDefault(_container);
 
+var _pool = require('./pool');
+
+var _pool2 = _interopRequireDefault(_pool);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 /**
@@ -251,13 +255,17 @@ Client.prototype.process_websocket_operation = function (metadata) {
 
 // Get container instance
 Client.prototype.get_container = function (name) {
-	// Check for existence of container
 	return new _container2.default(this, name);
 };
 
 // Get json list of containers
 Client.prototype.list = function () {
 	return this.run_sync_operation('GET', '/containers');
+};
+
+// Get volume instance
+Client.prototype.get_pool = function (name) {
+	return new _pool2.default(this, name);
 };
 
 module.exports = Client;
