@@ -33,10 +33,38 @@ var config = {
 			path: __dirname + '/downloaded.txt',
 		},
 	},
+	pool: 'default',
+	volume: 'volume',
 };
 
 var lxc = new LXC(config.client);
 var container = lxc.get_container(config.container.name);
+var pool = lxc.get_pool(config.pool);
+
+describe('Pool', () => {
+	describe('list()', () => {
+		it('Lists custom storage volumes in pool', () => {
+			return pool.list()
+				.should.eventually.be.a('Array').with.length(0);
+		});
+	});
+
+	describe('create_volume()', () => {
+		it('Creates a new storage volume', () => {
+			return pool.create_volume(config.volume)
+				.then(() => pool.list())
+				.should.eventually.contain(config.volume);
+		});
+	});
+
+	describe('destroy_volume()', () => {
+		it('Destroys a storage volume', () => {
+			return pool.destroy_volume(config.volume)
+				.then(() => pool.list())
+				.should.eventually.be.a('Array').with.length(0);
+		});
+	});
+});
 
 describe('LXC Client', () => {
 	it('Throws an error when wrongly configured', () => {
@@ -189,3 +217,5 @@ BqXMFNdXRsJeBrAaLGw5GAyGMhSVJuABUWca+oHLpXsQ7xzHTqnfJQ==
 		});
 	});
 });
+
+
