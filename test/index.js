@@ -12,8 +12,8 @@ import LXC from '../lib';
 
 var config = {
 	client: {
-		key: '/home/johan/.config/lxc/client.key',
-		cert: '/home/johan/.config/lxc/client.crt',
+		key: './keys/key.pem',
+		cert: './keys/cert.pem',
 		port: '8443',
 		host: '127.0.0.1',
 	},
@@ -98,6 +98,7 @@ describe('LXC Client', () => {
 	});
 });
 
+
 describe('Container', () => {
 	describe('wait_for_dhcp()', () => {
 		it('Returns address after dhcp is done', function() {
@@ -139,7 +140,9 @@ describe('Container', () => {
 				.should.eventually.equal(1);
 		});
 
-		it('Correctly handles multiline variables', () => {
+		it('Correctly handles multiline variables', function() {
+			this.timeout(10000);
+
 			var key = `-----BEGIN RSA PRIVATE KEY-----
 MIIEpAIBAAKCAQEAsNoVoxT3QtvNXgXFMRXQTB/eCbrgMfYQ06nbMt2hyuVR7Ks3
 Q3lkg5F4q4b2OCyA/a9KHQZ5XLXOoML/6lezLvNTOPLLRUXlVeyPeKVS/5CYwiPc
