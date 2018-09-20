@@ -93,16 +93,13 @@ Client.prototype.get_request_config = function (method, path, data) {
  * Get websocket that receives all lxd events
  */
 Client.prototype.get_events_socket = function () {
-	var url = this.config.websocket + '/events?type=operation';
-
-	var socket = new _ws2.default(url, {
+	// Get events listener 
+	return new _ws2.default(this.config.websocket + '/events?type=operation', {
 		cert: this.config.cert,
 		key: this.config.key,
 		port: this.config.port,
 		rejectUnauthorized: false
 	});
-
-	return socket;
 };
 
 /**
@@ -111,27 +108,34 @@ Client.prototype.get_events_socket = function () {
 Client.prototype.run_async_operation = function (method, path, data) {
 	var _this = this;
 
-	// Get events listener before executing operation
-	var events = this.get_events_socket();
+	// Wait for socket to open before executing operation
+	return new _bluebird2.default(function (resolve) {
+		var socket = _this.get_events_socket();
+		socket.on('open', function () {
+			return resolve(socket);
+		});
+	})
 
 	// Request an operation
-	return this.request(method, path, data)
-
-	// Wait for operation event
-	.then(function (body) {
-		switch (body.metadata.class) {
-			case 'task':
-				return _this.process_task_operation(events, body.metadata);
-			case 'websocket':
-				return _this.process_websocket_operation(body.metadata);
-			case 'token':
-				return body.metadata;
-			default:
-				throw new Error('API returned unknown operation class');
-		}
-	}).then(function (output) {
-		events.close();
-		return output;
+	.then(function (socket) {
+		return _this.request(method, path, data)
+		// Wait for operation event
+		.then(function (body) {
+			switch (body.metadata.class) {
+				case 'task':
+					return _this.process_task_operation(socket, body.metadata);
+				case 'websocket':
+					return _this.process_websocket_operation(body.metadata);
+				case 'token':
+					return body.metadata;
+				default:
+					throw new Error('API returned unknown operation class');
+			}
+		}).then(function (output) {
+			// Terminate socket after succesful operation
+			socket.terminate();
+			return output;
+		});
 	});
 };
 
@@ -168,19 +172,19 @@ Client.prototype.request = function (method, path, data) {
 /**
  * Process task operation
  */
-Client.prototype.process_task_operation = function (events, metadata) {
+Client.prototype.process_task_operation = function (socket, operation) {
 	return new _bluebird2.default(function (resolve, reject) {
-		events.on('message', function (data) {
-			data = JSON.parse(data).metadata;
+		socket.on('message', function (message) {
+			var data = JSON.parse(message).metadata;
 
 			// Don't handle events for other operations
-			if (data.id != metadata.id) return;
+			if (data.id != operation.id) return;
 
 			// Success
-			if (data.status_code == 200) resolve(data);
+			if (data.status_code == 200) return resolve(data);
 
 			// Failure
-			if (data.status_code == 400 || data.status_code == 401) reject(new Error(data.err));
+			if (data.status_code == 400 || data.status_code == 401) return reject(new Error(data.err));
 		});
 	});
 };
