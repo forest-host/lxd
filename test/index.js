@@ -91,7 +91,12 @@ describe('LXC Client', () => {
 		it('Creates container', function() {
 			this.timeout(20000);
 
-			return lxc.get_container(config.container.name).launch(config.container.image)
+			return lxc.get_container(config.container.name).launch({
+				source: {
+					type: 'image',
+					alias: config.container.image,
+				}
+			})
 				.then(container => container.get_state())
 				.should.eventually.have.property('status').that.equals('Running')
 		});
