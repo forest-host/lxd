@@ -25,28 +25,21 @@ function Container(client, name) {
 
 /**
  * Create container from lxc image
- * @param {string} image - Image to create container from
- * @param {object} config - Config to pass directly on creation
- * @param {object} profiles - Array of profiles to be applied to container
+ * @param {object} config - Post body to pass directly on creation
  */
-Container.prototype.create_from_image = function (image, config, profiles) {
+Container.prototype.create_from_image = function (config, target) {
 	var _this = this;
 
 	// Setup data
-	var body = {
+	var defaults = {
 		name: this.name,
 		architecture: 'x86_64',
-		profiles: profiles || ['default'],
-		ephemeral: false,
-		config: typeof config !== 'undefined' ? config : {},
-		source: {
-			type: 'image',
-			alias: image
-		}
+		profiles: ['default'],
+		ephemeral: false
 	};
 
 	// Create container
-	return this.client.run_async_operation('POST', '/containers', body)
+	return this.client.run_async_operation('POST', '/containers', Object.assign(defaults, config), { target: target })
 
 	// Return container instance
 	.then(function () {
@@ -55,9 +48,9 @@ Container.prototype.create_from_image = function (image, config, profiles) {
 };
 
 // Create and start a new container from image with name
-Container.prototype.launch = function (image, config, profiles) {
+Container.prototype.launch = function (config, target) {
 	// Create container
-	return this.create_from_image(image, config, profiles)
+	return this.create_from_image(config, target)
 	// Start container
 	.then(function (container) {
 		return container.start();

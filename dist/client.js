@@ -72,7 +72,7 @@ Client.prototype.load_certificates = function () {
 /**
  * Get config used for all API requests
  */
-Client.prototype.get_request_config = function (method, path, data) {
+Client.prototype.get_request_config = function (method, path, data, qs) {
 	return {
 		url: this.config.url + path,
 		agentOptions: {
@@ -85,7 +85,9 @@ Client.prototype.get_request_config = function (method, path, data) {
 		// Check if data is a stream, if not, everything will be json
 		json: typeof data !== 'undefined' ? !(data instanceof _stream2.default.Readable) : true,
 		// As we are always using json, send empty object when no data is set
-		body: typeof data !== 'undefined' ? data : {}
+		body: typeof data !== 'undefined' ? data : {},
+		// Query string
+		qs: qs
 	};
 };
 
@@ -105,7 +107,7 @@ Client.prototype.get_events_socket = function () {
 /**
  * Run asynchronous backend operation
  */
-Client.prototype.run_async_operation = function (method, path, data) {
+Client.prototype.run_async_operation = function (method, path, data, qs) {
 	var _this = this;
 
 	// Wait for socket to open before executing operation
@@ -118,7 +120,7 @@ Client.prototype.run_async_operation = function (method, path, data) {
 
 	// Request an operation
 	.then(function (socket) {
-		return _this.request(method, path, data)
+		return _this.request(method, path, data, qs)
 		// Wait for operation event
 		.then(function (body) {
 			switch (body.metadata.class) {
@@ -152,11 +154,12 @@ Client.prototype.run_sync_operation = function (method, path, data) {
  * Send request to LXD api and handle response appropriatly
  * @param {string} method - HTTP method to use (GET, POST etc.).
  * @param {string} path - Path to request
- * @param {string} data - JSON data to send
+ * @param {Object} data - JSON data to send
+ * @param {Object} qs - Query string params to send
  */
-Client.prototype.request = function (method, path, data) {
+Client.prototype.request = function (method, path, data, qs) {
 	// Actually make the request
-	return (0, _requestPromise2.default)(this.get_request_config(method, path, data))
+	return (0, _requestPromise2.default)(this.get_request_config(method, path, data, qs))
 
 	// Handle response
 	.then(function (body) {
