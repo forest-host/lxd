@@ -279,7 +279,11 @@ function create_stream_from_string(string) {
  * @param {String} path - Path in container to put content
  */
 Container.prototype.upload = function (content, path) {
-	return this.client.run_sync_operation('POST', '/containers/' + this.name + '/files?path=' + path, typeof content === 'string' ? create_stream_from_string(content) : content);
+	return this.client.run_sync_operation('POST', '/containers/' + this.name + '/files',
+	// Post file content
+	typeof content === 'string' ? create_stream_from_string(content) : content,
+	// Path of file in query string
+	{ path: path });
 };
 
 module.exports = Container;
