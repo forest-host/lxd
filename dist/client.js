@@ -73,6 +73,7 @@ Client.prototype.load_certificates = function () {
  * Get config used for all API requests
  */
 Client.prototype.get_request_config = function (method, path, body, qs) {
+	console.log(qs);
 	return {
 		url: this.config.url + path,
 		agentOptions: {
@@ -144,8 +145,8 @@ Client.prototype.run_async_operation = function (method, path, data, qs) {
 /**
  * Run synchronous operation
  */
-Client.prototype.run_sync_operation = function (method, path, data) {
-	return this.request(method, path, data).then(function (body) {
+Client.prototype.run_sync_operation = function (method, path, data, qs) {
+	return this.request(method, path, data, qs).then(function (body) {
 		return body.metadata;
 	});
 };
