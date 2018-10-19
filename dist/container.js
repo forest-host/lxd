@@ -38,8 +38,14 @@ Container.prototype.create_from_image = function (config, target) {
 		ephemeral: false
 	};
 
+	// Build query string
+	var qs = {};
+	if (typeof target !== 'undefined') {
+		qs.target = target;
+	};
+
 	// Create container
-	return this.client.run_async_operation('POST', '/containers', Object.assign(defaults, config), { target: target })
+	return this.client.run_async_operation('POST', '/containers', Object.assign(defaults, config), qs)
 
 	// Return container instance
 	.then(function () {
