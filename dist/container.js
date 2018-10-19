@@ -94,7 +94,7 @@ Container.prototype.start = function () {
 
 // Stop this container
 Container.prototype.stop = function () {
-	return this.action('stop', true);
+	return this.action('stop');
 };
 
 /**
