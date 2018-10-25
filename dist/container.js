@@ -212,62 +212,6 @@ Container.prototype.exec = function (cmd, args, options) {
 };
 
 /**
- * Reduce variables to lxc config object
- */
-function get_variables_as_config(variables) {
-	// Return undefined to not set anything when no vars are set
-	if (typeof variables == 'undefined') {
-		return undefined;
-	}
-
-	return Object.keys(variables).reduce(function (aggregate, name) {
-		// Set correct config key & value
-		aggregate['environment.' + name] = variables[name];
-		// Return object
-		return aggregate;
-	}, {});
-}
-
-/**
- * Reduce mounts array to lxc devices object
- */
-function get_mounts_as_devices(mounts) {
-	return mounts.reduce(function (aggregate, mount) {
-		aggregate[mount.name] = {
-			source: mount.source,
-			path: mount.path,
-			type: 'disk'
-		};
-		return aggregate;
-	}, {});
-}
-
-/**
- * Reduce volumes array to lxc device object
- */
-function get_volumes_as_devices(volumes) {
-	return volumes.reduce(function (aggregate, volume) {
-		aggregate[volume.name] = {
-			path: volume.path,
-			source: volume.volume,
-			pool: volume.pool,
-			type: 'disk'
-		};
-		return aggregate;
-	}, {});
-}
-
-/**
- * Add variables & mounts to container
- */
-Container.prototype.update_config = function (variables, mounts, volumes) {
-	return this.patch({
-		config: get_variables_as_config(variables),
-		devices: Object.assign(get_mounts_as_devices(mounts || []), get_volumes_as_devices(volumes || []))
-	});
-};
-
-/**
  * Creat readable stream from string
  * @param {String} string - string to convert to stream
  */
