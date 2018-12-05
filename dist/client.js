@@ -157,7 +157,8 @@ Client.prototype.get_events_socket = function () {
 		cert: this.config.cert,
 		key: this.config.key,
 		port: this.config.port,
-		rejectUnauthorized: false
+		rejectUnauthorized: false,
+		ecdhCurve: 'prime256v1'
 	});
 };
 
@@ -293,6 +294,7 @@ Client.prototype.process_websocket_operation = function (metadata) {
 			cert: _this2.config.cert,
 			key: _this2.config.key,
 			port: _this2.config.port,
+			ecdhCurve: 'prime256v1',
 			rejectUnauthorized: false
 		});
 	});
