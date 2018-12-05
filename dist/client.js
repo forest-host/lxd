@@ -138,6 +138,7 @@ Client.prototype.get_request_config = function (method, path, body, qs) {
 			rejectUnauthorized: false
 		},
 		method: method,
+		ecdhCurve: 'auto',
 		// Check if body is a stream, if not, everything will be json
 		json: typeof body !== 'undefined' ? !(body instanceof _stream2.default.Readable) : true,
 		// As we are always using json, send empty object when no body is set
