@@ -103,7 +103,6 @@ describe('LXC Client', () => {
 	});
 });
 
-
 describe('Container', () => {
 	describe('wait_for_dhcp()', () => {
 		it('Returns address after dhcp is done', function() {
@@ -213,6 +212,13 @@ BqXMFNdXRsJeBrAaLGw5GAyGMhSVJuABUWca+oHLpXsQ7xzHTqnfJQ==
 				.should.eventually.contain(fs.readFileSync(config.container.upload.source).toString().replace('\n', ''));
 		})
 	});
+
+	describe('download()', () => {
+		it('Downloads a file from container', () => {
+			return container.download(config.container.download.source)
+				.should.eventually.equal(fs.readFileSync(config.container.upload.source).toString());
+		});
+	})
 
 	describe('delete()', () => {
 		it('Deletes container', function() {
