@@ -236,4 +236,15 @@ Container.prototype.upload = function (content, path) {
 	{ path: path });
 };
 
+/**
+ * Download file fronm container
+ */
+Container.prototype.download = function (path) {
+	return this.client.raw_request('GET', '/containers/' + this.name + '/files',
+	// Empty data so we can pass path in qs
+	undefined,
+	// Path of file in query string
+	{ path: path });
+};
+
 module.exports = Container;

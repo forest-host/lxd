@@ -207,6 +207,18 @@ Client.prototype.run_sync_operation = function (method, path, data, qs) {
 };
 
 /**
+ * Make raw request to lxd api
+ * @param {string} method - HTTP method to use (GET, POST etc.).
+ * @param {string} path - Path to request
+ * @param {Object} data - JSON data to send
+ * @param {Object} qs - Query string params to send
+ */
+Client.prototype.raw_request = function (method, path, data, qs) {
+	// Actually make the request
+	return (0, _requestPromise2.default)(this.get_request_config(method, path, data, qs));
+};
+
+/**
  * Send request to LXD api and handle response appropriatly
  * @param {string} method - HTTP method to use (GET, POST etc.).
  * @param {string} path - Path to request
@@ -214,8 +226,7 @@ Client.prototype.run_sync_operation = function (method, path, data, qs) {
  * @param {Object} qs - Query string params to send
  */
 Client.prototype.request = function (method, path, data, qs) {
-	// Actually make the request
-	return (0, _requestPromise2.default)(this.get_request_config(method, path, data, qs))
+	return this.raw_request(method, path, data, qs)
 
 	// Handle response
 	.then(function (body) {
