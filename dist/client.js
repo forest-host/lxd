@@ -137,6 +137,7 @@ Client.prototype.get_request_config = function (method, path, body, qs) {
 			port: this.config.port,
 			rejectUnauthorized: false
 		},
+		ecdhCurve: 'secp384r1',
 		method: method,
 		// Check if body is a stream, if not, everything will be json
 		json: typeof body !== 'undefined' ? !(body instanceof _stream2.default.Readable) : true,
@@ -156,7 +157,8 @@ Client.prototype.get_events_socket = function () {
 		cert: this.config.cert,
 		key: this.config.key,
 		port: this.config.port,
-		rejectUnauthorized: false
+		rejectUnauthorized: false,
+		ecdhCurve: 'secp384r1'
 	});
 };
 
@@ -292,7 +294,8 @@ Client.prototype.process_websocket_operation = function (metadata) {
 			cert: _this2.config.cert,
 			key: _this2.config.key,
 			port: _this2.config.port,
-			rejectUnauthorized: false
+			rejectUnauthorized: false,
+			ecdhCurve: 'secp384r1'
 		});
 	});
 
