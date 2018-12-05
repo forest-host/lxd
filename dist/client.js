@@ -138,7 +138,6 @@ Client.prototype.get_request_config = function (method, path, body, qs) {
 			rejectUnauthorized: false
 		},
 		method: method,
-		ecdhCurve: 'prime256v1',
 		// Check if body is a stream, if not, everything will be json
 		json: typeof body !== 'undefined' ? !(body instanceof _stream2.default.Readable) : true,
 		// As we are always using json, send empty object when no body is set
@@ -157,8 +156,7 @@ Client.prototype.get_events_socket = function () {
 		cert: this.config.cert,
 		key: this.config.key,
 		port: this.config.port,
-		rejectUnauthorized: false,
-		ecdhCurve: 'prime256v1'
+		rejectUnauthorized: false
 	});
 };
 
@@ -294,7 +292,6 @@ Client.prototype.process_websocket_operation = function (metadata) {
 			cert: _this2.config.cert,
 			key: _this2.config.key,
 			port: _this2.config.port,
-			ecdhCurve: 'prime256v1',
 			rejectUnauthorized: false
 		});
 	});
