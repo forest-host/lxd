@@ -138,7 +138,7 @@ describe('Container', () => {
 				.should.eventually.contain(config.container.name);
 		});
 
-		it('Rejects promise for bad command', () => {
+		it('Returns return-code for commands', () => {
 			return container.exec('rm', ['/not/existing/directory'])
 				.then(obj => obj.status)
 				.should.eventually.equal(1);
