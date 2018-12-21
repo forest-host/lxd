@@ -68,21 +68,13 @@ Container.prototype.launch = function (config, target) {
  * @param {String} action - Action to execute
  * @param {Boolean} force - Whether to force execution
  */
-Container.prototype.action = function (action, force) {
+Container.prototype.action = function (action, force = false) {
 	var _this2 = this;
 
-	if (typeof force === 'undefined') {
-		force = false;
-	}
+	// create container request
+	return this.client.run_async_operation('PUT', '/containers/' + this.name + '/state', { action, timeout: 30, force }).then(function (res) {
+		if (res.err) throw new Error(res.err);
 
-	return this.client.run_async_operation('PUT', '/containers/' + this.name + '/state', {
-		action: action,
-		timeout: 30,
-		force: force
-	}).then(function (res) {
-		if (res.err) {
-			throw new Error(res.err);
-		}
 		return _this2;
 	});
 };
@@ -165,8 +157,10 @@ Container.prototype.get_ipv4_addresses = function () {
 /**
  * Resolve a promise when container has aquired a ip address
  */
-Container.prototype.wait_for_dhcp = function () {
+Container.prototype.wait_for_dhcp = function (retries = 0) {
 	var _this6 = this;
+
+	if (retries >= 60) throw new Error('Container could not get dhcp lease');
 
 	return this.get_ipv4_addresses().then(function (addresses) {
 		if (!addresses.length) {
@@ -174,7 +168,7 @@ Container.prototype.wait_for_dhcp = function () {
 			return new _bluebird2.default(function (resolve) {
 				return setTimeout(resolve, 500);
 			}).then(function () {
-				return _this6.wait_for_dhcp();
+				return _this6.wait_for_dhcp(++retries);
 			});
 		}
 
@@ -184,20 +178,20 @@ Container.prototype.wait_for_dhcp = function () {
 
 /**
  * Execute a command in the container
- * @param {string} cmd - Command to be executed in 
- * @param {Array} args - Array containing arguments for command
- * @param {Object} options - Object containing working directory
+ * @param {string} cmd - Command to be executed in container
+ * @param {Array} args - (Optional) Array containing arguments for command
+ * @param {Object} options - (Optional) Object containing working directory
  */
 Container.prototype.exec = function (cmd, args, options) {
-	// Get correct options
+	// It is possible to not pass option so check last argument to see if it is a options object
 	var last = arguments[arguments.length - 1];
 	options = last === Object(last) ? last : {};
 
-	// Change dir before command execution if cwd is set
-	cmd = 'cwd' in options ? 'cd ' + options.cwd + '; ' + cmd : cmd;
-
-	// Get correct args
+	// It is possible to not pass arguments, so check if second argument to function is an array of arguments
 	args = Array.isArray(arguments[1]) ? arguments[1] : [];
+
+	// Change dir before command execution if cwd is set
+	cmd = 'cwd' in options ? `cd ${options.cwd}; ${cmd}` : cmd;
 
 	// Add args to cmd
 	cmd += args.length ? ' ' + args.join(' ') : '';

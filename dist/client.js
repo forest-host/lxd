@@ -270,10 +270,10 @@ Client.prototype.process_websocket_operation = function (metadata) {
 
 	// Get us some helpfull names
 	var socket_map = {
-		'0': 'stdin',
-		'1': 'stdout',
-		'2': 'stderr',
-		'control': 'control'
+		0: 'stdin',
+		1: 'stdout',
+		2: 'stderr',
+		control: 'control'
 	};
 
 	var sockets = {};
@@ -305,9 +305,7 @@ Client.prototype.process_websocket_operation = function (metadata) {
 		sockets[stream].on('message', function (data) {
 			var string = data.toString('utf8').trim();
 
-			if (string) {
-				output[stream] = output[stream].concat(string.split('\n'));
-			}
+			if (string) output[stream].push.apply(output[stream], string.split('\n'));
 		});
 	});
 
