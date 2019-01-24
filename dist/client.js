@@ -217,12 +217,7 @@ Client.prototype.run_sync_operation = function (method, path, data, qs) {
  */
 Client.prototype.raw_request = function (method, path, data, qs) {
 	// Actually make the request
-	return (0, _requestPromise2.default)(this.get_request_config(method, path, data, qs))
-	// Log method & path to see what went wrong
-	.catch(function (err) {
-		console.log(method + ' ' + path);
-		throw err;
-	});
+	return (0, _requestPromise2.default)(this.get_request_config(method, path, data, qs));
 };
 
 /**

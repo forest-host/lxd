@@ -95,6 +95,7 @@ Container.prototype.stop = function () {
 Container.prototype.delete = function () {
 	var _this3 = this;
 
+	// Stop this thing
 	return this.stop().catch(function (err) {
 		// That's okay
 		if (err.message.indexOf('already stopped') != -1) {
