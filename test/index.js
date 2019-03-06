@@ -146,51 +146,44 @@ describe('Container', () => {
 	*/
 
 	describe('exec()', () => {
-		/*
 		it('Executes command in container', () => {
 			return container.exec('hostname')
-				.then(obj => obj.stdout[0])
+				// Get first line
+				.then(obj => obj.output[0])
 				// TODO returns object
 				.should.eventually.contain(config.container.name);
 		});
-		*/
 
-		it('Interrupts commands that run longer than timeout', function() {
-			this.timeout(50000);
-
+		it('Interrupts commands that run longer than timeout when timeout is passed', () => {
 			// Timeout is in millis
-			return container.exec('sleep', ['5;', 'echo', 'test'], { timeout: 2500 })
+			return container.exec('sleep', ['3;', 'echo', 'test'], { timeout: 500 })
 				.then(obj => {
-					//obj.stdout.should.have.length(0);
+					obj.output.should.have.length(0);
 					obj.status.should.be.above(0);
 				})
 		});
 
-		/*
-14:16:51.732653 IP localhost.52664 > localhost.8443: Flags [P.], seq 1293:1372, ack 2316, win 1398, options [nop,nop,TS val 258122321 ecr 258119869], length 79
-        0x0000:  4500 0083 ffa6 4000 4006 3ccc 7f00 0001  E.....@.@.<.....                                                                                     
-        0x0010:  7f00 0001 cdb8 20fb 2639 eb5f 238f 539e  ........&9._#.S.                                                                    
-        0x0020:  8018 0576 fe77 0000 0101 080a 0f62 a251  ...v.w.......b.Q                                                                   
-        0x0030:  0f62 98bd 1703 0300 4a00 0000 0000 0000  .b......J.......
-        0x0040:  0228 c35d 72c9 9992 b9d1 3171 3df2 edbe  .(.]r.....1q=...                                                                                    
-        0x0050:  f6c4 ec3b b65f 8bc6 8c7e 839e 13aa 2055  ...;._...~.....U                                                                                     
-        0x0060:  6559 7db2 27e3 7376 e9b3 06d1 aefa fdf8  eY}.'.sv........                                                                    
-        0x0070:  f458 0fbf 132b 82d7 1e50 22f1 35b7 cd7a  .X...+...P".5..z                                                                                     
-        0x0080:  871c bc                                  ...             
-14:17:54.542119 IP localhost.52684 > localhost.8443: Flags [P.], seq 1115365622:1115365700, ack 3067153324, win 2422, options [nop,nop,TS val 258185131 ecr 258170261], length 78
-        0x0000:  4500 0082 45fa 4000 4006 f679 7f00 0001  E...E.@.@..y....
-        0x0010:  7f00 0001 cdcc 20fb 427b 20f6 b6d1 0bac  ........B{......
-        0x0020:  8018 0976 fe76 0000 0101 080a 0f63 97ab  ...v.v.......c..
-        0x0030:  0f63 5d95 1703 0300 49c8 c9e6 0adf 6295  .c].....I.....b.
-        0x0040:  5800 bf74 1eaf acd6 50c6 44f2 b925 f3e9  X..t....P.D..%..
-        0x0050:  49c9 1bcd 73f8 277b 978e 1e20 d32c fb8c  I...s.'{.....,..
-        0x0060:  2870 0117 645a 2665 5587 bba1 c84c 9313  (p..dZ&eU....L..
-        0x0070:  307f 7030 620c a030 42bf c33d 5cd6 f197  0.p0b..0B..=\...
-        0x0080:  4fb1                                     O.
+		/**
+		 * TODO - it should be possible to get command return code after command is done
+		 * probably do this by using operation classes
+		 */
+		it('Returns sockets when interactive is passed', done => {
+			container.exec('echo', ['test'], { interactive: true })
+				.then(sockets => {
+					sockets.should.have.property('control');
+					sockets.should.have.property('0');
 
-		*/
+					// See if output matches
+					sockets['0'].on('message', data => {
+						data.toString().should.contain('test');
+					});
+					// When control closes, 
+					sockets.control.on('close', () => done());
+				})
+		});
 		
-		/*
+		it('Returns operation when interactive is passed, making it possible to get command return code');
+
 		it('Returns return-code for commands', () => {
 			return container.exec('rm', ['/not/existing/directory'])
 				.then(obj => obj.status)
@@ -238,7 +231,6 @@ BqXMFNdXRsJeBrAaLGw5GAyGMhSVJuABUWca+oHLpXsQ7xzHTqnfJQ==
 					output.should.equal(key);
 				});
 		});
-		*/
 	});
 
 	/*
