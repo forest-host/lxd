@@ -17,20 +17,20 @@
     ]
   },
   "dependencies": {
-    "bluebird": "^3.4.6",
-    "extend": "^3.0.0",
+    "bluebird": "^3.5.3",
+    "extend": "^3.0.2",
     "mocha": "^3.2.0",
-    "request": "^2.75.0",
-    "request-promise": "^4.2.2",
-    "ws": "^5.2.0"
+    "request": "^2.88.0",
+    "request-promise": "^4.2.4",
+    "ws": "^6.1.4"
   },
   "devDependencies": {
-    "babel-cli": "^6.14.0",
-    "babel-plugin-transform-es2015-arrow-functions": "^6.8.0",
-    "babel-plugin-transform-es2015-modules-commonjs": "^6.14.0",
-    "babel-register": "^6.14.0",
-    "chai": "^4.1.2",
+    "babel-cli": "^6.26.0",
+    "babel-plugin-transform-es2015-arrow-functions": "^6.22.0",
+    "babel-plugin-transform-es2015-modules-commonjs": "^6.26.2",
+    "babel-register": "^6.26.0",
+    "chai": "^4.2.0",
     "chai-as-promised": "^7.1.1",
-    "mocha": "^5.2.0"
+    "mocha": "^6.0.2"
   }
 }
