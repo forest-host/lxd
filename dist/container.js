@@ -27,7 +27,7 @@ function Container(client, name) {
  * Create container from lxc image
  * @param {object} config - Post body to pass directly on creation
  */
-Container.prototype.create_from_image = function (config, target) {
+Container.prototype.create_from_image = function (params, target) {
 	var _this = this;
 
 	// Setup data
@@ -38,14 +38,13 @@ Container.prototype.create_from_image = function (config, target) {
 		ephemeral: false
 	};
 
-	// Build query string
-	var qs = {};
-	if (typeof target !== 'undefined') {
-		qs.target = target;
-	};
-
 	// Create container
-	return this.client.run_async_operation('POST', '/containers', Object.assign(defaults, config), qs)
+	return this.client.run_async_operation({
+		method: 'POST',
+		path: '/containers',
+		data: Object.assign(defaults, params),
+		qs: target ? { target: target } : {}
+	})
 
 	// Return container instance
 	.then(function () {
@@ -72,7 +71,11 @@ Container.prototype.action = function (action, force = false) {
 	var _this2 = this;
 
 	// create container request
-	return this.client.run_async_operation('PUT', '/containers/' + this.name + '/state', { action, timeout: 30, force }).then(function (res) {
+	return this.client.run_async_operation({
+		method: 'PUT',
+		path: '/containers/' + this.name + '/state',
+		data: { action, timeout: 30, force }
+	}).then(function (res) {
 		if (res.err) throw new Error(res.err);
 
 		return _this2;
@@ -107,7 +110,7 @@ Container.prototype.delete = function () {
 
 		throw err;
 	}).then(function () {
-		return _this3.client.run_async_operation('DELETE', '/containers/' + _this3.name);
+		return _this3.client.run_async_operation({ method: 'DELETE', path: '/containers/' + _this3.name });
 	});
 };
 
@@ -130,19 +133,19 @@ Container.prototype.patch = function (config) {
 Container.prototype.update = function (config) {
 	var _this5 = this;
 
-	return this.client.run_async_operation('PUT', '/containers/' + this.name, config).then(function () {
+	return this.client.run_async_operation({ method: 'PUT', path: '/containers/' + this.name, data: config }).then(function () {
 		return _this5;
 	});
 };
 
 // Get config of this container from lxc list
 Container.prototype.get_info = function () {
-	return this.client.run_sync_operation('GET', '/containers/' + this.name);
+	return this.client.run_sync_operation({ method: 'GET', path: '/containers/' + this.name });
 };
 
 // Get state of container
 Container.prototype.get_state = function () {
-	return this.client.run_sync_operation('GET', '/containers/' + this.name + '/state');
+	return this.client.run_sync_operation({ method: 'GET', path: '/containers/' + this.name + '/state' });
 };
 
 Container.prototype.get_ipv4_addresses = function () {
@@ -197,12 +200,20 @@ Container.prototype.exec = function (cmd, args, options) {
 	// Add args to cmd
 	cmd += args.length ? ' ' + args.join(' ') : '';
 
-	// Run command with joined args on container
-	return this.client.run_async_operation('POST', '/containers/' + this.name + '/exec', {
+	var data = {
 		command: ['/bin/bash', '-c', cmd],
 		environment: options.environment || {},
 		'wait-for-websocket': true,
-		interactive: false
+		interactive: true
+	};
+
+	// Run command with joined args on container
+	return this.client.run_async_operation({
+		method: 'POST',
+		path: '/containers/' + this.name + '/exec',
+		data: data,
+		timeout: options.timeout,
+		interactive: options.interactive
 	});
 };
 
@@ -224,22 +235,26 @@ function create_stream_from_string(string) {
  * @param {String} path - Path in container to put content
  */
 Container.prototype.upload = function (content, path) {
-	return this.client.run_sync_operation('POST', '/containers/' + this.name + '/files',
-	// Post file content
-	typeof content === 'string' ? create_stream_from_string(content) : content,
-	// Path of file in query string
-	{ path: path });
+	return this.client.run_sync_operation({
+		method: 'POST',
+		path: '/containers/' + this.name + '/files',
+		// Post file content
+		data: typeof content === 'string' ? create_stream_from_string(content) : content,
+		// Path of file in query string
+		qs: { path: path }
+	});
 };
 
 /**
  * Download file fronm container
  */
 Container.prototype.download = function (path) {
-	return this.client.raw_request('GET', '/containers/' + this.name + '/files',
-	// Empty data so we can pass path in qs
-	undefined,
-	// Path of file in query string
-	{ path: path });
+	return this.client.raw_request({
+		method: 'GET',
+		path: '/containers/' + this.name + '/files',
+		// Path of file in query string
+		qs: { path: path }
+	});
 };
 
 module.exports = Container;

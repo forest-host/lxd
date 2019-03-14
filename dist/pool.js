@@ -22,7 +22,7 @@ function Pool(client, name) {
 Pool.prototype.list = function () {
 	var _this = this;
 
-	return this.client.run_sync_operation('GET', this.url).then(function (list) {
+	return this.client.run_sync_operation({ method: 'GET', path: this.url }).then(function (list) {
 		return list
 		// Only get custom volumes
 		.filter(function (uri) {
@@ -46,11 +46,11 @@ Pool.prototype.create_volume = function (name) {
 		type: 'custom'
 	};
 
-	return this.client.run_sync_operation('POST', this.url, config);
+	return this.client.run_sync_operation({ method: 'POST', path: this.url, data: config });
 };
 
 Pool.prototype.destroy_volume = function (name) {
-	return this.client.run_sync_operation('DELETE', this.url + '/custom/' + name);
+	return this.client.run_sync_operation({ method: 'DELETE', path: this.url + '/custom/' + name });
 };
 
 exports.default = Pool;

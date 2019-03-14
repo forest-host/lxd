@@ -128,9 +128,10 @@ Client.prototype.load_certificates = function () {
 /**
  * Get config used for all API requests
  */
-Client.prototype.get_request_config = function (method, path, body, qs) {
+//Client.prototype.get_request_config = function(method, path, body, qs) {
+Client.prototype.get_request_config = function (params) {
 	return {
-		url: this.config.url + path,
+		url: this.config.url + params.path,
 		agentOptions: {
 			cert: this.config.cert,
 			key: this.config.key,
@@ -138,13 +139,13 @@ Client.prototype.get_request_config = function (method, path, body, qs) {
 			rejectUnauthorized: false
 		},
 		ecdhCurve: 'secp384r1',
-		method: method,
+		method: params.method,
 		// Check if body is a stream, if not, everything will be json
-		json: typeof body !== 'undefined' ? !(body instanceof _stream2.default.Readable) : true,
+		json: params.hasOwnProperty('data') ? !(params.data instanceof _stream2.default.Readable) : true,
 		// As we are always using json, send empty object when no body is set
-		body: typeof body !== 'undefined' ? body : {},
+		body: params.hasOwnProperty('data') ? params.data : {},
 		// Query string
-		qs: typeof qs !== 'undefined' ? qs : {}
+		qs: params.hasOwnProperty('qs') ? params.qs : {}
 	};
 };
 
@@ -165,7 +166,7 @@ Client.prototype.get_events_socket = function () {
 /**
  * Run asynchronous backend operation
  */
-Client.prototype.run_async_operation = function (method, path, data, qs) {
+Client.prototype.run_async_operation = function (params) {
 	var _this = this;
 
 	// Wait for socket to open before executing operation
@@ -178,14 +179,14 @@ Client.prototype.run_async_operation = function (method, path, data, qs) {
 
 	// Request an operation
 	.then(function (socket) {
-		return _this.request(method, path, data, qs)
+		return _this.request(params)
 		// Wait for operation event
 		.then(function (body) {
 			switch (body.metadata.class) {
 				case 'task':
-					return _this.process_task_operation(socket, body.metadata);
+					return _this.process_task_operation(body.metadata, socket);
 				case 'websocket':
-					return _this.process_websocket_operation(body.metadata);
+					return _this.process_websocket_operation(body.metadata, params);
 				case 'token':
 					return body.metadata;
 				default:
@@ -202,8 +203,8 @@ Client.prototype.run_async_operation = function (method, path, data, qs) {
 /**
  * Run synchronous operation
  */
-Client.prototype.run_sync_operation = function (method, path, data, qs) {
-	return this.request(method, path, data, qs).then(function (body) {
+Client.prototype.run_sync_operation = function (params) {
+	return this.request(params).then(function (body) {
 		return body.metadata;
 	});
 };
@@ -215,9 +216,9 @@ Client.prototype.run_sync_operation = function (method, path, data, qs) {
  * @param {Object} data - JSON data to send
  * @param {Object} qs - Query string params to send
  */
-Client.prototype.raw_request = function (method, path, data, qs) {
+Client.prototype.raw_request = function (params) {
 	// Actually make the request
-	return (0, _requestPromise2.default)(this.get_request_config(method, path, data, qs));
+	return (0, _requestPromise2.default)(this.get_request_config(params));
 };
 
 /**
@@ -227,8 +228,8 @@ Client.prototype.raw_request = function (method, path, data, qs) {
  * @param {Object} data - JSON data to send
  * @param {Object} qs - Query string params to send
  */
-Client.prototype.request = function (method, path, data, qs) {
-	return this.raw_request(method, path, data, qs)
+Client.prototype.request = function (params) {
+	return this.raw_request(params)
 
 	// Handle response
 	.then(function (body) {
@@ -244,7 +245,7 @@ Client.prototype.request = function (method, path, data, qs) {
 /**
  * Process task operation
  */
-Client.prototype.process_task_operation = function (socket, operation) {
+Client.prototype.process_task_operation = function (operation, socket) {
 	return new _bluebird2.default(function (resolve, reject) {
 		socket.on('message', function (message) {
 			var data = JSON.parse(message).metadata;
@@ -262,70 +263,83 @@ Client.prototype.process_task_operation = function (socket, operation) {
 };
 
 /**
- * Process websocket operation of lxd api by connecting to sockets
- * @param {Object} metadata - Metadata returned from LXD api containing ws locations etc.
+ * Wait for websocket operation to complete, saving output
  */
-Client.prototype.process_websocket_operation = function (metadata) {
+function finalize_websocket_operation(sockets, operation, params) {
 	var _this2 = this;
 
-	// Get us some helpfull names
-	var socket_map = {
-		0: 'stdin',
-		1: 'stdout',
-		2: 'stderr',
-		control: 'control'
+	var result = {
+		output: []
 	};
+
+	// Create arrays of lines of output
+	sockets['0'].on('message', function (data) {
+		var string = data.toString('utf8').trim();
+
+		// Push strings onto output array, seperated by newline, use apply so we can pass split string as arguments to push
+		if (string) result.output.push.apply(result.output, string.split('\n'));
+	});
+
+	return new _bluebird2.default(function (resolve, reject) {
+		// We do not want to run commands longer than 10 minutes, send kill signal after that
+		if (params.timeout) {
+			var timeout = setTimeout(function () {
+				sockets.control.send(JSON.stringify({
+					command: "signal",
+					signal: 15
+				}));
+			}, params.timeout);
+		}
+
+		// Control socket closes when done executing
+		sockets.control.on('close', function () {
+			// Clear timeout as we can not send control signals through closed socket
+			if (params.timeout) clearTimeout(timeout);
+
+			// When control closes, we can safely close the stdin/stdout socket
+			sockets[0].close();
+
+			// After getting output from sockets we need to get the statuscode from the operation
+			_this2.run_sync_operation({ method: 'GET', path: '/operations/' + operation.id })
+			// Use function here to have own scope
+			.then(function (operation) {
+				// Set exit code
+				result.status = operation.metadata.return;
+
+				// Return exit code & stderr & stdout
+				resolve(result);
+			});
+		});
+	});
+}
+
+/**
+ * Process websocket operation of lxd api by connecting to sockets
+ * @param {Object} operation - Operation returned from LXD api containing ws locations etc.
+ */
+Client.prototype.process_websocket_operation = function (operation, params) {
+	var _this3 = this;
 
 	var sockets = {};
 
-	// Collect output of sockets in arrays
-	var output = {
-		stdout: [],
-		stderr: []
-	};
-
 	// We would like to listen to each socket
-	Object.keys(metadata.metadata.fds).map(function (key) {
+	Object.keys(operation.metadata.fds).map(function (key) {
 		// Generate url from metadata
-		var url = _this2.config.websocket + '/operations/' + metadata.id + '/websocket?secret=' + metadata.metadata.fds[key];
+		var url = _this3.config.websocket + '/operations/' + operation.id + '/websocket?secret=' + operation.metadata.fds[key];
 
 		// Create socket listening to url
-		sockets[socket_map[key]] = new _ws2.default(url, {
-			cert: _this2.config.cert,
-			key: _this2.config.key,
-			port: _this2.config.port,
+		sockets[key] = new _ws2.default(url, {
+			cert: _this3.config.cert,
+			key: _this3.config.key,
+			port: _this3.config.port,
 			rejectUnauthorized: false,
 			ecdhCurve: 'secp384r1'
 		});
 	});
 
-	// Keep track of stderr & stdout streams
-	['stdout', 'stderr'].forEach(function (stream) {
-		// Create arrays of lines of output
-		sockets[stream].on('message', function (data) {
-			var string = data.toString('utf8').trim();
+	if (params.interactive) return _bluebird2.default.resolve(sockets);
 
-			if (string) output[stream].push.apply(output[stream], string.split('\n'));
-		});
-	});
-
-	return new _bluebird2.default(function (resolve) {
-		// Control socket closes when done executing
-		sockets.control.on('close', function () {
-			sockets.stdin.close();
-			sockets.stdout.close();
-			sockets.stderr.close();
-
-			// After getting output from sockets we need to get the statuscode from the operation
-			_this2.run_sync_operation('GET', '/operations/' + metadata.id).then(function (operation) {
-				// Set exit code
-				output.status = operation.metadata.return;
-
-				// Return exit code & stderr & stdout
-				resolve(output);
-			});
-		});
-	});
+	return finalize_websocket_operation.apply(this, [sockets, operation, params]);
 };
 
 // Get container instance
@@ -335,7 +349,7 @@ Client.prototype.get_container = function (name) {
 
 // Get json list of containers
 Client.prototype.list = function () {
-	return this.run_sync_operation('GET', '/containers');
+	return this.run_sync_operation({ method: 'GET', path: '/containers' });
 };
 
 // Get volume instance
