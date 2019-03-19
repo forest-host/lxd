@@ -41,7 +41,6 @@ var lxc = new LXC(config.client);
 var container = lxc.get_container(config.container.name);
 var pool = lxc.get_pool(config.pool);
 
-/*
 describe('Pool', () => {
 	describe('list()', () => {
 		it('Lists custom storage volumes in pool', () => {
@@ -116,10 +115,8 @@ describe('LXC Client', () => {
 		});
 	});
 });
-*/
 
 describe('Container', () => {
-	/*
 	describe('wait_for_dhcp()', () => {
 		it('Returns address after dhcp is done', function() {
 			this.timeout(40000);
@@ -143,7 +140,6 @@ describe('Container', () => {
 				.then(state => state.status.should.equal('Running'));
 		});
 	});
-	*/
 
 	describe('exec()', () => {
 		it('Executes command in container', () => {
@@ -233,7 +229,6 @@ BqXMFNdXRsJeBrAaLGw5GAyGMhSVJuABUWca+oHLpXsQ7xzHTqnfJQ==
 		});
 	});
 
-	/*
 	describe('patch()', () => {
 		it('Updates container config', () => {
 			return container
@@ -247,7 +242,7 @@ BqXMFNdXRsJeBrAaLGw5GAyGMhSVJuABUWca+oHLpXsQ7xzHTqnfJQ==
 		it('Uploads a string to a file in container', () => {
 			return container.upload(config.container.upload_string.source, config.container.upload_string.path)
 				.then(() => container.exec('cat', [config.container.upload_string.path]))
-				.then(obj => obj.stdout)
+				.then(obj => obj.output)
 				.should.eventually.contain(config.container.upload_string.source);
 		})
 
@@ -255,7 +250,7 @@ BqXMFNdXRsJeBrAaLGw5GAyGMhSVJuABUWca+oHLpXsQ7xzHTqnfJQ==
 			return container.upload(fs.createReadStream(config.container.upload.source), config.container.upload.path)
 				// Check if file is there and contains correct string
 				.then(() => container.exec('cat', [config.container.upload.path]))
-				.then(obj => obj.stdout)
+				.then(obj => obj.output)
 				.should.eventually.contain(fs.readFileSync(config.container.upload.source).toString().replace('\n', ''));
 		})
 	});
@@ -277,7 +272,6 @@ BqXMFNdXRsJeBrAaLGw5GAyGMhSVJuABUWca+oHLpXsQ7xzHTqnfJQ==
 				.should.eventually.be.a('Array').that.not.contains(config.container.name);
 		});
 	});
-	*/
 });
 
 
