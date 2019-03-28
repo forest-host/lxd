@@ -130,7 +130,7 @@ Client.prototype.load_certificates = function () {
  */
 //Client.prototype.get_request_config = function(method, path, body, qs) {
 Client.prototype.get_request_config = function (params) {
-	return {
+	var data = {
 		url: this.config.url + params.path,
 		agentOptions: {
 			cert: this.config.cert,
@@ -140,13 +140,22 @@ Client.prototype.get_request_config = function (params) {
 		},
 		ecdhCurve: 'secp384r1',
 		method: params.method,
-		// Check if body is a stream, if not, everything will be json
-		json: params.hasOwnProperty('data') ? !(params.data instanceof _stream2.default.Readable) : true,
+		json: true,
 		// As we are always using json, send empty object when no body is set
 		body: params.hasOwnProperty('data') ? params.data : {},
 		// Query string
 		qs: params.hasOwnProperty('qs') ? params.qs : {}
 	};
+
+	// If body is a stream, it will not be a json request, set correct content type to try to prevent 500 errors
+	if (params.hasOwnProperty('data') && params.data instanceof _stream2.default.Readable) {
+		data.headers = {
+			'Content-Type': 'application/octet-stream'
+		};
+		data.json = false;
+	}
+
+	return data;
 };
 
 /**
