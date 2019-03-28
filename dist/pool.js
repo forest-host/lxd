@@ -57,6 +57,16 @@ Pool.prototype.destroy_volume = function (name) {
 };
 
 /**
+ * List snapshots of volume
+ */
+Pool.prototype.list_snapshots = function (volume_name) {
+	return this.client.run_sync_operation({
+		method: 'GET',
+		path: this.url + '/custom/' + volume_name + '/snapshots'
+	});
+};
+
+/**
  * Create a snapshot of a storage volume
  */
 Pool.prototype.create_snapshot = function (volume_name, snapshot_name) {
