@@ -35,6 +35,7 @@ var config = {
 	},
 	pool: 'default',
 	volume: 'volume',
+	clone: 'clone',
 };
 
 var lxc = new LXC(config.client);
@@ -42,6 +43,9 @@ var container = lxc.get_container(config.container.name);
 var pool = lxc.get_pool(config.pool);
 
 describe('Pool', () => {
+	// Clean up clone
+	after(() => pool.destroy_volume(config.clone))
+
 	describe('list()', () => {
 		it('Lists custom storage volumes in pool', () => {
 			return pool.list()
@@ -55,13 +59,19 @@ describe('Pool', () => {
 				.then(() => pool.list())
 				.should.eventually.contain(config.volume);
 		});
+
+		it('Copies storage volumes', () => {
+			return pool.create_volume(config.clone, config.volume)
+				.then(() => pool.list())
+				.should.eventually.contain(config.clone);
+		})
 	});
 
 	describe('destroy_volume()', () => {
 		it('Destroys a storage volume', () => {
 			return pool.destroy_volume(config.volume)
 				.then(() => pool.list())
-				.should.eventually.be.a('Array').with.length(0);
+				.should.eventually.not.contain(config.volume);
 		});
 	});
 });
