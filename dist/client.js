@@ -66,7 +66,7 @@ function get_variables_as_config(variables) {
 		return undefined;
 	}
 
-	return Object.keys(variables).reduce(function (aggregate, name) {
+	return Object.keys(variables).reduce((aggregate, name) => {
 		// Set correct config key & value
 		aggregate['environment.' + name] = variables[name];
 		// Return object
@@ -78,7 +78,7 @@ function get_variables_as_config(variables) {
  * Reduce mounts array to lxc devices object
  */
 function get_mounts_as_devices(mounts) {
-	return mounts.reduce(function (aggregate, mount) {
+	return mounts.reduce((aggregate, mount) => {
 		aggregate[mount.name] = {
 			source: mount.source,
 			path: mount.path,
@@ -92,7 +92,7 @@ function get_mounts_as_devices(mounts) {
  * Reduce volumes array to lxc device object
  */
 function get_volumes_as_devices(volumes) {
-	return volumes.reduce(function (aggregate, volume) {
+	return volumes.reduce((aggregate, volume) => {
 		aggregate[volume.name] = {
 			path: volume.path,
 			source: volume.volume,
@@ -167,8 +167,9 @@ Client.prototype.get_events_socket = function () {
 		cert: this.config.cert,
 		key: this.config.key,
 		port: this.config.port,
-		rejectUnauthorized: false,
-		ecdhCurve: 'secp384r1'
+		rejectUnauthorized: false
+		// TODO - this was added because stuff was broken without it, but now node is complaining this does not adhere to the RFC 6066, i would not know why
+		//ecdhCurve: 'secp384r1',
 	});
 };
 
@@ -176,32 +177,28 @@ Client.prototype.get_events_socket = function () {
  * Run asynchronous backend operation
  */
 Client.prototype.run_async_operation = function (params) {
-	var _this = this;
-
 	// Wait for socket to open before executing operation
-	return new _bluebird2.default(function (resolve) {
-		var socket = _this.get_events_socket();
-		socket.on('open', function () {
-			return resolve(socket);
-		});
+	return new _bluebird2.default(resolve => {
+		var socket = this.get_events_socket();
+		socket.on('open', () => resolve(socket));
 	})
 
 	// Request an operation
-	.then(function (socket) {
-		return _this.request(params)
+	.then(socket => {
+		return this.request(params)
 		// Wait for operation event
-		.then(function (body) {
+		.then(body => {
 			switch (body.metadata.class) {
 				case 'task':
-					return _this.process_task_operation(body.metadata, socket);
+					return this.process_task_operation(body.metadata, socket);
 				case 'websocket':
-					return _this.process_websocket_operation(body.metadata, params);
+					return this.process_websocket_operation(body.metadata, params);
 				case 'token':
 					return body.metadata;
 				default:
 					throw new Error('API returned unknown operation class');
 			}
-		}).then(function (output) {
+		}).then(output => {
 			// Terminate socket after succesful operation
 			socket.terminate();
 			return output;
@@ -213,9 +210,7 @@ Client.prototype.run_async_operation = function (params) {
  * Run synchronous operation
  */
 Client.prototype.run_sync_operation = function (params) {
-	return this.request(params).then(function (body) {
-		return body.metadata;
-	});
+	return this.request(params).then(body => body.metadata);
 };
 
 /**
@@ -241,7 +236,7 @@ Client.prototype.request = function (params) {
 	return this.raw_request(params)
 
 	// Handle response
-	.then(function (body) {
+	.then(body => {
 		// API response is not parsed on uploads
 		if (typeof body === 'string') body = JSON.parse(body);
 
@@ -255,8 +250,8 @@ Client.prototype.request = function (params) {
  * Process task operation
  */
 Client.prototype.process_task_operation = function (operation, socket) {
-	return new _bluebird2.default(function (resolve, reject) {
-		socket.on('message', function (message) {
+	return new _bluebird2.default((resolve, reject) => {
+		socket.on('message', message => {
 			var data = JSON.parse(message).metadata;
 
 			// Don't handle events for other operations
@@ -275,24 +270,22 @@ Client.prototype.process_task_operation = function (operation, socket) {
  * Wait for websocket operation to complete, saving output
  */
 function finalize_websocket_operation(sockets, operation, params) {
-	var _this2 = this;
-
 	var result = {
 		output: []
 	};
 
 	// Create arrays of lines of output
-	sockets['0'].on('message', function (data) {
+	sockets['0'].on('message', data => {
 		var string = data.toString('utf8').trim();
 
 		// Push strings onto output array, seperated by newline, use apply so we can pass split string as arguments to push
 		if (string) result.output.push.apply(result.output, string.split('\n'));
 	});
 
-	return new _bluebird2.default(function (resolve, reject) {
+	return new _bluebird2.default((resolve, reject) => {
 		// We do not want to run commands longer than 10 minutes, send kill signal after that
 		if (params.timeout) {
-			var timeout = setTimeout(function () {
+			var timeout = setTimeout(() => {
 				sockets.control.send(JSON.stringify({
 					command: "signal",
 					signal: 15
@@ -301,7 +294,7 @@ function finalize_websocket_operation(sockets, operation, params) {
 		}
 
 		// Control socket closes when done executing
-		sockets.control.on('close', function () {
+		sockets.control.on('close', () => {
 			// Clear timeout as we can not send control signals through closed socket
 			if (params.timeout) clearTimeout(timeout);
 
@@ -309,7 +302,7 @@ function finalize_websocket_operation(sockets, operation, params) {
 			sockets[0].close();
 
 			// After getting output from sockets we need to get the statuscode from the operation
-			_this2.run_sync_operation({ method: 'GET', path: '/operations/' + operation.id })
+			this.run_sync_operation({ method: 'GET', path: '/operations/' + operation.id })
 			// Use function here to have own scope
 			.then(function (operation) {
 				// Set exit code
@@ -327,20 +320,18 @@ function finalize_websocket_operation(sockets, operation, params) {
  * @param {Object} operation - Operation returned from LXD api containing ws locations etc.
  */
 Client.prototype.process_websocket_operation = function (operation, params) {
-	var _this3 = this;
-
 	var sockets = {};
 
 	// We would like to listen to each socket
-	Object.keys(operation.metadata.fds).map(function (key) {
+	Object.keys(operation.metadata.fds).map(key => {
 		// Generate url from metadata
-		var url = _this3.config.websocket + '/operations/' + operation.id + '/websocket?secret=' + operation.metadata.fds[key];
+		var url = this.config.websocket + '/operations/' + operation.id + '/websocket?secret=' + operation.metadata.fds[key];
 
 		// Create socket listening to url
 		sockets[key] = new _ws2.default(url, {
-			cert: _this3.config.cert,
-			key: _this3.config.key,
-			port: _this3.config.port,
+			cert: this.config.cert,
+			key: this.config.key,
+			port: this.config.port,
 			rejectUnauthorized: false,
 			ecdhCurve: 'secp384r1'
 		});

@@ -20,18 +20,12 @@ function Pool(client, name) {
  * List storage volumes in this pool
  */
 Pool.prototype.list = function () {
-	var _this = this;
-
-	return this.client.run_sync_operation({ method: 'GET', path: this.url }).then(function (list) {
+	return this.client.run_sync_operation({ method: 'GET', path: this.url }).then(list => {
 		return list
 		// Only get custom volumes
-		.filter(function (uri) {
-			return uri.indexOf(_this.url + '/custom') != -1;
-		})
+		.filter(uri => uri.indexOf(this.url + '/custom') != -1)
 		// Only get volume names
-		.map(function (uri) {
-			return _path2.default.basename(uri);
-		});
+		.map(uri => _path2.default.basename(uri));
 	});
 };
 

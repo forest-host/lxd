@@ -28,8 +28,6 @@ function Container(client, name) {
  * @param {object} config - Post body to pass directly on creation
  */
 Container.prototype.create_from_image = function (params, target) {
-	var _this = this;
-
 	// Setup data
 	var defaults = {
 		name: this.name,
@@ -47,9 +45,7 @@ Container.prototype.create_from_image = function (params, target) {
 	})
 
 	// Return container instance
-	.then(function () {
-		return _this;
-	});
+	.then(() => this);
 };
 
 // Create and start a new container from image with name
@@ -57,9 +53,7 @@ Container.prototype.launch = function (config, target) {
 	// Create container
 	return this.create_from_image(config, target)
 	// Start container
-	.then(function (container) {
-		return container.start();
-	});
+	.then(container => container.start());
 };
 
 /**
@@ -68,17 +62,15 @@ Container.prototype.launch = function (config, target) {
  * @param {Boolean} force - Whether to force execution
  */
 Container.prototype.action = function (action, force = false) {
-	var _this2 = this;
-
 	// create container request
 	return this.client.run_async_operation({
 		method: 'PUT',
 		path: '/containers/' + this.name + '/state',
 		data: { action, timeout: 30, force }
-	}).then(function (res) {
+	}).then(res => {
 		if (res.err) throw new Error(res.err);
 
-		return _this2;
+		return this;
 	});
 };
 
@@ -96,10 +88,8 @@ Container.prototype.stop = function () {
  * Delete container
  */
 Container.prototype.delete = function () {
-	var _this3 = this;
-
 	// Stop this thing
-	return this.stop().catch(function (err) {
+	return this.stop().catch(err => {
 		// That's okay
 		if (err.message.indexOf('already stopped') != -1) {
 			return;
@@ -109,9 +99,7 @@ Container.prototype.delete = function () {
 		}
 
 		throw err;
-	}).then(function () {
-		return _this3.client.run_async_operation({ method: 'DELETE', path: '/containers/' + _this3.name });
-	});
+	}).then(() => this.client.run_async_operation({ method: 'DELETE', path: '/containers/' + this.name }));
 };
 
 /**
@@ -119,11 +107,7 @@ Container.prototype.delete = function () {
  * @param {Object} config - Partial config to set on container
  */
 Container.prototype.patch = function (config) {
-	var _this4 = this;
-
-	return this.get_info().then(function (info) {
-		return _this4.update((0, _extend2.default)(true, info, config));
-	});
+	return this.get_info().then(info => this.update((0, _extend2.default)(true, info, config)));
 };
 
 /**
@@ -131,11 +115,7 @@ Container.prototype.patch = function (config) {
  * @param {Object} config - Full container info config to pass to container
  */
 Container.prototype.update = function (config) {
-	var _this5 = this;
-
-	return this.client.run_async_operation({ method: 'PUT', path: '/containers/' + this.name, data: config }).then(function () {
-		return _this5;
-	});
+	return this.client.run_async_operation({ method: 'PUT', path: '/containers/' + this.name, data: config }).then(() => this);
 };
 
 // Get config of this container from lxc list
@@ -149,8 +129,8 @@ Container.prototype.get_state = function () {
 };
 
 Container.prototype.get_ipv4_addresses = function () {
-	return this.get_state().then(function (state) {
-		return state.network.eth0.addresses.filter(function (address) {
+	return this.get_state().then(state => {
+		return state.network.eth0.addresses.filter(address => {
 			return address.family == 'inet';
 		});
 	});
@@ -162,21 +142,15 @@ Container.prototype.get_ipv4_addresses = function () {
  * Resolve a promise when container has aquired a ip address
  */
 Container.prototype.wait_for_dhcp = function (retries = 0) {
-	var _this6 = this;
-
 	if (retries >= 60) throw new Error('Container could not get dhcp lease');
 
-	return this.get_ipv4_addresses().then(function (addresses) {
+	return this.get_ipv4_addresses().then(addresses => {
 		if (!addresses.length) {
 			// Wait for 500 ms, then try again
-			return new _bluebird2.default(function (resolve) {
-				return setTimeout(resolve, 500);
-			}).then(function () {
-				return _this6.wait_for_dhcp(++retries);
-			});
+			return new _bluebird2.default(resolve => setTimeout(resolve, 500)).then(() => this.wait_for_dhcp(++retries));
 		}
 
-		return _this6;
+		return this;
 	});
 };
 

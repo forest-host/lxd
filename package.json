@@ -6,13 +6,12 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "babel lib -d dist",
-    "test": "NODE_ENV=testing mocha --watch --bail --compilers js:babel-register"
+    "test": "NODE_ENV=testing mocha --watch --bail --require babel-register"
   },
   "author": "Johan Schuijt",
   "license": "UNLICENCED",
   "babel": {
     "plugins": [
-      "transform-es2015-arrow-functions",
       "transform-es2015-modules-commonjs"
     ]
   },
@@ -26,7 +25,6 @@
   },
   "devDependencies": {
     "babel-cli": "^6.26.0",
-    "babel-plugin-transform-es2015-arrow-functions": "^6.22.0",
     "babel-plugin-transform-es2015-modules-commonjs": "^6.26.2",
     "babel-register": "^6.26.0",
     "chai": "^4.2.0",
