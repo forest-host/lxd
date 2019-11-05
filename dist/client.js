@@ -167,9 +167,9 @@ Client.prototype.get_events_socket = function () {
 		cert: this.config.cert,
 		key: this.config.key,
 		port: this.config.port,
-		rejectUnauthorized: false
+		rejectUnauthorized: false,
 		// TODO - this was added because stuff was broken without it, but now node is complaining this does not adhere to the RFC 6066, i would not know why
-		//ecdhCurve: 'secp384r1',
+		ecdhCurve: 'secp384r1'
 	});
 };
 
