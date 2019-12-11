@@ -1,5 +1,4 @@
 
-import Promise from 'bluebird';
 import extend from 'extend';
 import { Readable as readable } from 'stream';
 

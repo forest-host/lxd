@@ -1,7 +1,6 @@
 
 import stream from 'stream';
 import fs from 'fs';
-import Promise from 'bluebird';
 import request from 'request-promise';
 import WebSocket from 'ws';
 import extend from '@forest.host/extend';
