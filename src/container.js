@@ -135,8 +135,6 @@ Container.prototype.get_ipv4_addresses = function() {
 		});
 }
 
-// TODO - this can take forever when dhcp is down
-// Implement max_tries to fix this
 /**
  * Resolve a promise when container has aquired a ip address
  */
