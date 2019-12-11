@@ -12,20 +12,25 @@ import LXC from '../lib';
 
 var config = {
 	client: {
-		key: './keys/key.pem',
-		cert: './keys/cert.pem',
+		key: './test/keys/key.pem',
+		cert: './test/keys/cert.pem',
 		port: '8443',
 		host: '127.0.0.1',
 	},
 	container: {
 		name: 'test',
-		image: 'application-php',
-		upload_string: {
-			source: 'this is an uploaded string',
-			path: '/uploaded_string.txt',
+		image: {
+			source: { 
+				type: 'image', 
+				properties: {
+					os: "Alpine",
+					release: "3.10",
+					architecture: "amd64"
+				}
+			} 
 		},
 		upload: {
-			source: __dirname + '/transfer.txt',
+			source: 'this is an uploaded string',
 			path: '/uploaded.txt',
 		},
 		download: {
@@ -114,12 +119,7 @@ describe('LXC Client', () => {
 		it('Creates container', function() {
 			this.timeout(20000);
 
-			return lxc.get_container(config.container.name).launch({
-				source: {
-					type: 'image',
-					alias: config.container.image,
-				}
-			})
+			return lxc.get_container(config.container.name).launch(config.container.image)
 				.then(container => container.get_state())
 				.should.eventually.have.property('status').that.equals('Running')
 		});
@@ -176,15 +176,21 @@ describe('Container', () => {
 		it('Returns sockets when interactive is passed', done => {
 			container.exec('echo', ['test'], { interactive: true })
 				.then(sockets => {
+					let messages = [];
+
 					sockets.should.have.property('control');
 					sockets.should.have.property('0');
 
 					// See if output matches
 					sockets['0'].on('message', data => {
-						data.toString().should.contain('test');
+						messages.push(data);
 					});
-					// When control closes, 
-					sockets.control.on('close', () => done());
+
+					// When control closes, run tests
+					sockets.control.on('close', () => {
+						messages.map(m => m.toString().should.contain('test'))
+						done()
+					});
 				})
 		});
 		
@@ -250,25 +256,17 @@ BqXMFNdXRsJeBrAaLGw5GAyGMhSVJuABUWca+oHLpXsQ7xzHTqnfJQ==
 
 	describe('upload()', () => {
 		it('Uploads a string to a file in container', () => {
-			return container.upload(config.container.upload_string.source, config.container.upload_string.path)
-				.then(() => container.exec('cat', [config.container.upload_string.path]))
-				.then(obj => obj.output)
-				.should.eventually.contain(config.container.upload_string.source);
-		})
-
-		it('Uploads a file to the container', () => {
-			return container.upload(fs.createReadStream(config.container.upload.source), config.container.upload.path)
-				// Check if file is there and contains correct string
+			return container.upload(config.container.upload.source, config.container.upload.path)
 				.then(() => container.exec('cat', [config.container.upload.path]))
 				.then(obj => obj.output)
-				.should.eventually.contain(fs.readFileSync(config.container.upload.source).toString().replace('\n', ''));
+				.should.eventually.contain(config.container.upload.source);
 		})
 	});
 
 	describe('download()', () => {
 		it('Downloads a file from container', () => {
 			return container.download(config.container.download.source)
-				.should.eventually.equal(fs.readFileSync(config.container.upload.source).toString());
+				.should.eventually.equal(config.container.upload.source.toString());
 		});
 	})
 

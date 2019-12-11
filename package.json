@@ -6,29 +6,28 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "babel lib -d dist",
-    "test": "NODE_ENV=testing mocha --watch --bail --require babel-register"
+    "test": "NODE_ENV=testing mocha --bail --require @babel/register"
   },
   "author": "Johan Schuijt",
   "license": "UNLICENCED",
   "babel": {
     "plugins": [
-      "transform-es2015-modules-commonjs"
+      "@babel/plugin-transform-modules-commonjs"
     ]
   },
   "dependencies": {
-    "bluebird": "^3.5.3",
-    "extend": "^3.0.2",
-    "mocha": "^3.2.0",
+    "@forest.host/extend": "^1.0.1",
     "request": "^2.88.0",
-    "request-promise": "^4.2.4",
-    "ws": "^6.1.4"
+    "request-promise": "^4.2.5",
+    "ws": "^7.2.0"
   },
   "devDependencies": {
-    "babel-cli": "^6.26.0",
-    "babel-plugin-transform-es2015-modules-commonjs": "^6.26.2",
-    "babel-register": "^6.26.0",
     "chai": "^4.2.0",
     "chai-as-promised": "^7.1.1",
-    "mocha": "^6.0.2"
+    "@babel/cli": "^7.7.5",
+    "@babel/core": "^7.7.5",
+    "@babel/plugin-transform-modules-commonjs": "^7.7.5",
+    "@babel/register": "^7.7.4",
+    "mocha": "^6.2.2"
   }
 }
