@@ -224,7 +224,10 @@ Container.prototype.upload = function(stream, path) {
 	return new Promise((resolve, reject) => {
 		stream.pipe(request);
 		stream.on('error', reject)
-		stream.on('end', resolve);
+		stream.on('end', () => {
+			stream.destroy();
+			resolve();
+		});
 	})
 };
 

@@ -30,8 +30,6 @@ function Client(config) {
 		this.config.key = fs.readFileSync(this.config.key);
 	}
 
-	// Set url
-	this.config.url = 'https://' + this.config.host + ':' + this.config.port + '/' + this.config.api_version;
 	this.config.websocket = 'wss://' + this.config.host + ':' + this.config.port + '/' + this.config.api_version;
 
 	return this;
@@ -139,7 +137,12 @@ Client.prototype.run_async_operation = function(config) {
 				// Terminate socket after succesful operation
 				socket.terminate();
 				return output;
-			});
+			})
+			.catch(err => {
+				// Just in case something fails, destroy socket
+				socket.terminate();
+				throw err;
+			})
 	})
 };
 
@@ -180,8 +183,11 @@ Client.prototype.raw_request = function(config) {
 
 	let data = extend(defaults, config);
 
-	// Append url to path
-	data.url = this.config.url + data.url;
+	// Set url
+	let base_url = 'https://' + this.config.host + ':' + this.config.port + '/' + this.config.api_version;
+
+	// Append base url to path
+	data.url = base_url + data.url;
 
 	// Actually make the request
 	return request(data);

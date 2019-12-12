@@ -6,7 +6,7 @@
   "main": "lib/index.js",
   "scripts": {
     "prepublish": "babel src -d lib",
-    "test": "NODE_ENV=testing mocha --bail --require @babel/register"
+    "test": "mocha --bail --require @babel/register"
   },
   "author": "Johan Schuijt",
   "license": "ISC",

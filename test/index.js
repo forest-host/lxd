@@ -8,7 +8,6 @@ chai.use(chaiAsPromised);
 
 import LXC from '../src';
 
-
 var multiline_string = `-----BEGIN RSA PRIVATE KEY-----
 MIIEpAIBAAKCAQEAsNoVoxT3QtvNXgXFMRXQTB/eCbrgMfYQ06nbMt2hyuVR7Ks3
 Q3lkg5F4q4b2OCyA/a9KHQZ5XLXOoML/6lezLvNTOPLLRUXlVeyPeKVS/5CYwiPc
@@ -81,7 +80,7 @@ describe('Pool', () => {
 	describe('list()', () => {
 		it('Lists custom storage volumes in pool', () => {
 			return pool.list()
-				.should.eventually.be.a('Array').with.length(0);
+				.should.eventually.be.a('Array').that.not.contains(config.volume);
 		});
 	});
 
@@ -114,31 +113,23 @@ describe('LXC Client', () => {
 		this.timeout(5000);
 		var lxc = new LXC(config.client);
 
-		return lxc.list()
-			.then(list => list.indexOf('/1.0/containers/' + config.container.name) != -1)
-			.then(container_exists => {
-				if(container_exists)
-					return lxc.get_container(config.container.name).delete();
+		return lxc.get_container(config.container.name).delete()
+			.catch(err => {
+				if(err.error.error != 'not found')
+					throw err;
 			});
 	})
 
-	it('Throws an error when wrongly configured', () => {
-		new LXC(extend({}, config.client, { host: '10.0.0.5' })).list().should.be.rejected;
-	});
-
-	it('Returns results when rightly configured', () => {
-		new LXC(config.client).list().should.not.be.rejected;
+	describe('list()', () => {
+		it('Responds with a array', () => {
+			return lxc.list()
+				.should.eventually.be.a('array');
+		});
 	});
 
 	describe('get_container()', () => {
 		it('Returns container instance', () => {
 			container.should.be.a('object');
-		});
-	});
-
-	describe('list()', () => {
-		it('Responds with a array', () => {
-			lxc.list().should.eventually.be.a('array');
 		});
 	});
 
@@ -196,10 +187,8 @@ describe('Container', () => {
 				})
 		});
 
-		/**
-		 * TODO - it should be possible to get command return code after command is done
-		 * probably do this by using operation classes
-		 */
+		// TODO - it should be possible to get command return code after command is done
+		// probably do this by using operation classes
 		it('Returns sockets when interactive is passed', done => {
 			container.exec('echo', ['test'], { interactive: true })
 				.then(sockets => {
@@ -215,6 +204,8 @@ describe('Container', () => {
 
 					// When control closes, run tests
 					sockets.control.on('close', () => {
+						// When control closes, we need to close the stdin/stdout socket
+						sockets[0].terminate();
 						messages.map(m => m.toString().should.contain('test'))
 						done()
 					});
@@ -229,9 +220,7 @@ describe('Container', () => {
 				.should.eventually.equal(1);
 		});
 
-		it('Correctly handles multiline variables', function() {
-			this.timeout(10000);
-
+		it('Correctly handles multiline variables', () => {
 			return container
 				.patch({ config: { 'environment.PRIVATE_KEY': multiline_string }})
 				.then(() => container.get_info())
@@ -275,10 +264,10 @@ describe('Container', () => {
 		it('Deletes container', function() {
 			this.timeout(10000);
 
-			// TODO - when other containers are running this test fails
 			return container.delete()
 				.then(() => lxc.list())
 				.should.eventually.be.a('Array').that.not.contains(config.container.name);
 		});
 	});
 });
+
