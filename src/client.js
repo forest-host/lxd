@@ -22,7 +22,13 @@ function Client(config) {
 	// Overwrite defaults with config
 	this.config = extend(defaults, config);
 
-	this.load_certificates();
+	// Load certs if string was passed
+	if(typeof(this.config.cert) == 'string') {
+		this.config.cert = fs.readFileSync(this.config.cert);
+	}
+	if(typeof(this.config.key) == 'string') {
+		this.config.key = fs.readFileSync(this.config.key);
+	}
 
 	// Set url
 	this.config.url = 'https://' + this.config.host + ':' + this.config.port + '/' + this.config.api_version;
@@ -88,25 +94,6 @@ Client.prototype.get_container_config = function(variables, mounts, volumes) {
 }
 
 /**
- * Make sure we got a file buffer for cert & key
- */
-Client.prototype.load_certificates = function() {
-	if(typeof(this.config.cert) == 'string') {
-		this.config.cert = fs.readFileSync(this.config.cert);
-	}
-	if(typeof(this.config.key) == 'string') {
-		this.config.key = fs.readFileSync(this.config.key);
-	}
-}
-
-/**
- * Get config used for all API requests
- */
-//Client.prototype.get_request_config = function(method, path, body, qs) {
-Client.prototype.get_request_config = function(params) {
-}
-
-/**
  * Get websocket that receives all lxd events
  */
 Client.prototype.get_events_socket = function() {
@@ -116,7 +103,8 @@ Client.prototype.get_events_socket = function() {
 		key: this.config.key,
 		port: this.config.port,
 		rejectUnauthorized: false,
-		// TODO - this was added because stuff was broken without it, but now node is complaining this does not adhere to the RFC 6066, i would not know why
+		// TODO - this was added because stuff was broken without it, 
+		// TODO node is complaining this does not adhere to the RFC 6066
 		ecdhCurve: 'secp384r1',
 	});
 }
@@ -124,7 +112,7 @@ Client.prototype.get_events_socket = function() {
 /**
  * Run asynchronous backend operation
  */
-Client.prototype.run_async_operation = function(params) {
+Client.prototype.run_async_operation = function(config) {
 	// Wait for socket to open before executing operation
 	return new Promise(resolve => {
 		var socket = this.get_events_socket();
@@ -133,16 +121,16 @@ Client.prototype.run_async_operation = function(params) {
 
 	// Request an operation
 	.then(socket => {
-		return this.request(params)
+		return this.run_operation(config)
 			// Wait for operation event
-			.then(body => {
-				switch (body.metadata.class) {
+			.then(operation => {
+				switch (operation.class) {
 					case 'task':
-						return this.process_task_operation(body.metadata, socket);
+						return this.process_task_operation(operation, socket);
 					case 'websocket':
-						return this.process_websocket_operation(body.metadata, params);
+						return this.process_websocket_operation(operation, config);
 					case 'token':
-						return body.metadata;
+						return operation;
 					default: 
 						throw new Error('API returned unknown operation class');
 				}
@@ -158,9 +146,16 @@ Client.prototype.run_async_operation = function(params) {
 /**
  * Run synchronous operation
  */
-Client.prototype.run_sync_operation = function(params) {
-	return this.request(params)
-		.then(body => body.metadata);
+Client.prototype.run_operation = function(config) {
+	// Raw request
+	return this.raw_request(config)
+		// Handle response
+		.then(body => {
+			if(body.type == 'error')
+				throw new Error(body.error);
+			
+			return body.metadata;
+		})
 }
 
 /**
@@ -170,9 +165,8 @@ Client.prototype.run_sync_operation = function(params) {
  * @param {Object} data - JSON data to send
  * @param {Object} qs - Query string params to send
  */
-Client.prototype.raw_request = function(params) {
-	var data = {
-		url: this.config.url + params.path,
+Client.prototype.raw_request = function(config) {
+	let defaults = {
 		agentOptions: {
 			cert: this.config.cert,
 			key: this.config.key,
@@ -180,47 +174,17 @@ Client.prototype.raw_request = function(params) {
 			rejectUnauthorized: false,
 		},
 		ecdhCurve: 'secp384r1',
-		method: params.method,
 		json: true,
-		// As we are always using json, send empty object when no body is set
-		body: params.hasOwnProperty('data') ? params.data : {},
-		// Query string
-		qs: params.hasOwnProperty('qs') ? params.qs : {},
+		method: 'GET'
 	};
 
-	// If body is a stream, it will not be a json request, set correct content type to try to prevent 500 errors
-	if(params.hasOwnProperty('data') && params.data instanceof stream.Readable) {
-		data.headers = {
-			'Content-Type': 'application/octet-stream',
-		};
-		data.json = false;
-	}
+	let data = extend(defaults, config);
+
+	// Append url to path
+	data.url = this.config.url + data.url;
 
 	// Actually make the request
 	return request(data);
-};
-
-/**
- * Send request to LXD api and handle response appropriatly
- * @param {string} method - HTTP method to use (GET, POST etc.).
- * @param {string} path - Path to request
- * @param {Object} data - JSON data to send
- * @param {Object} qs - Query string params to send
- */
-Client.prototype.request = function(params) {
-	return this.raw_request(params)
-
-	// Handle response
-	.then(body => {
-		// API response is not parsed on uploads
-		if(typeof(body) === 'string')
-			body = JSON.parse(body);
-
-		if(body.type == 'error')
-			throw new Error(body.error);
-		
-		return body;
-	});
 };
 
 /**
@@ -249,7 +213,7 @@ Client.prototype.process_task_operation = function(operation, socket) {
 /**
  * Wait for websocket operation to complete, saving output
  */
-function finalize_websocket_operation(sockets, operation, params) {
+function finalize_websocket_operation(sockets, operation, config) {
 	var result = {
 		output: [],
 	};
@@ -265,26 +229,26 @@ function finalize_websocket_operation(sockets, operation, params) {
 
 	return new Promise((resolve, reject) => {
 		// We do not want to run commands longer than 10 minutes, send kill signal after that
-		if(params.timeout) {
+		if(config.timeout) {
 			var timeout = setTimeout(() => {
 				sockets.control.send(JSON.stringify({
 					command: "signal",
 					signal: 15
 				}));
-			}, params.timeout);
+			}, config.timeout);
 		}
 
 		// Control socket closes when done executing
 		sockets.control.on('close', () => {
 			// Clear timeout as we can not send control signals through closed socket
-			if(params.timeout)
+			if(config.timeout)
 				clearTimeout(timeout);
 
 			// When control closes, we can safely close the stdin/stdout socket
 			sockets[0].close();
 
 			// After getting output from sockets we need to get the statuscode from the operation
-			this.run_sync_operation({ method: 'GET', path: '/operations/' + operation.id })
+			this.run_operation({ method: 'GET', url: '/operations/' + operation.id })
 				// Use function here to have own scope
 				.then(function(operation) {
 					// Set exit code
@@ -301,7 +265,7 @@ function finalize_websocket_operation(sockets, operation, params) {
  * Process websocket operation of lxd api by connecting to sockets
  * @param {Object} operation - Operation returned from LXD api containing ws locations etc.
  */
-Client.prototype.process_websocket_operation = function(operation, params) {
+Client.prototype.process_websocket_operation = function(operation, config) {
 	var sockets = {};
 
 	// We would like to listen to each socket
@@ -319,10 +283,10 @@ Client.prototype.process_websocket_operation = function(operation, params) {
 		});
 	});
 
-	if(params.interactive)
+	if(config.interactive)
 		return Promise.resolve(sockets);
 
-	return finalize_websocket_operation.apply(this, [sockets, operation, params]);
+	return finalize_websocket_operation.apply(this, [sockets, operation, config]);
 };
 
 
@@ -333,7 +297,7 @@ Client.prototype.get_container = function(name) {
 
 // Get json list of containers
 Client.prototype.list = function() {
-	return this.run_sync_operation({ method: 'GET', path: '/containers'});
+	return this.run_operation({ method: 'GET', url: '/containers'});
 };
 
 // Get volume instance

@@ -251,14 +251,19 @@ describe('Container', () => {
 		});
 	});
 
-	describe('upload()', () => {
+	describe('upload_string()', () => {
 		it('Uploads a string to a file in container', () => {
-			return container.upload(config.container.upload.content, config.container.upload.path)
+			return container.upload_string(config.container.upload.content, config.container.upload.path)
 				.then(() => container.exec('cat', [config.container.upload.path]))
 				.then(obj => obj.output)
 				.should.eventually.contain(config.container.upload.content);
 		})
 	});
+
+	describe('upload()', () => {
+		it('Streams readable stream to container');
+	})
+
 
 	describe('download()', () => {
 		it('Downloads a file from container', () => {

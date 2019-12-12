@@ -17,7 +17,7 @@ function Container(client, name) {
  * Create container from lxc image
  * @param {object} config - Post body to pass directly on creation
  */
-Container.prototype.create_from_image = function(params, target) {
+Container.prototype.create_from_image = function(config, target) {
 	// Setup data
 	var defaults = {
 		name: this.name,
@@ -29,8 +29,8 @@ Container.prototype.create_from_image = function(params, target) {
 	// Create container
 	return this.client.run_async_operation({
 		method: 'POST',
-		path: '/containers',
-		data: Object.assign(defaults, params),
+		url: '/containers',
+		body: Object.assign(defaults, config),
 		qs: target ? { target: target } : {},
 	})
 
@@ -55,8 +55,8 @@ Container.prototype.action = function(action, force = false) {
 	// create container request
 	return this.client.run_async_operation({
 		method: 'PUT',
-		path: '/containers/'+this.name+'/state',
-		data: { action, timeout: 30, force },
+		url: '/containers/'+this.name+'/state',
+		body: { action, timeout: 30, force },
 	})
 	.then(res => {
 		if(res.err)
@@ -94,7 +94,7 @@ Container.prototype.delete = function() {
 			throw err;
 		})
 
-		.then(() => this.client.run_async_operation({ method: 'DELETE', path: '/containers/'+this.name }));
+		.then(() => this.client.run_async_operation({ method: 'DELETE', url: '/containers/'+this.name }));
 };
 
 /**
@@ -102,8 +102,8 @@ Container.prototype.delete = function() {
  * @param {Object} config - Partial config to set on container
  */
 Container.prototype.patch = function(config) {
-	return this.get_info()
-		.then(info => this.update(extend(true, info, config)))
+	return this.client.run_operation({ method: 'PATCH', url: '/containers/'+this.name, body: config, })
+		.then(() => this)
 };
 
 /**
@@ -111,19 +111,19 @@ Container.prototype.patch = function(config) {
  * @param {Object} config - Full container info config to pass to container
  */
 Container.prototype.update = function(config) {
-	return this.client.run_async_operation({ method: 'PUT', path: '/containers/'+this.name, data: config, })
+	return this.client.run_async_operation({ method: 'PUT', url: '/containers/'+this.name, body: config, })
 		.then(() => this)
 }
 
 
 // Get config of this container from lxc list
 Container.prototype.get_info = function() {
-	return this.client.run_sync_operation({ method: 'GET', path: '/containers/'+this.name });
+	return this.client.run_operation({ method: 'GET', url: '/containers/'+this.name });
 };
 
 // Get state of container
 Container.prototype.get_state = function() {
-	return this.client.run_sync_operation({ method: 'GET', path: '/containers/'+this.name+'/state' });
+	return this.client.run_operation({ method: 'GET', url: '/containers/'+this.name+'/state' });
 };
 
 Container.prototype.get_ipv4_addresses = function() {
@@ -174,7 +174,7 @@ Container.prototype.exec = function(cmd, args, options) {
 	// Add args to cmd
 	cmd += args.length ? ' ' + args.join(' ') : '';
 
-	var data = {
+	var body = {
 		command: ['/bin/sh', '-c', cmd],
 		environment: options.environment || {},
 		'wait-for-websocket': true,
@@ -184,39 +184,48 @@ Container.prototype.exec = function(cmd, args, options) {
 	// Run command with joined args on container
 	return this.client.run_async_operation({ 
 		method: 'POST', 
-		path: '/containers/'+this.name+'/exec',
-		data: data,
+		url: '/containers/'+this.name+'/exec',
+		body,
 		timeout: options.timeout,
 		interactive: options.interactive,
 	});
 };
 
 /**
- * Creat readable stream from string
- * @param {String} string - string to convert to stream
+ * Upload string to file in container
  */
-function create_stream_from_string(string) {
+Container.prototype.upload_string = function(string, path) {
 	var stream = new readable;
 	stream.push(string);
+	// Why push 0
 	stream.push(null);
 
-	return stream;
+	return this.upload(stream, path);
 }
 
 /**
  * Upload content to file in container
- * @param {String} content - String or read stream to upload
+ * @param {Stream} stream - Read stream to upload
  * @param {String} path - Path in container to put content
  */
-Container.prototype.upload = function(content, path) {
-	return this.client.run_sync_operation({
+Container.prototype.upload = function(stream, path) {
+	// TODO - Body used to be returned without content-type:json, check if this is still the case
+	let request = this.client.raw_request({
 		method: 'POST', 
-		path: '/containers/' + this.name + '/files',
-		// Post file content
-		data: create_stream_from_string(content),
+		url: '/containers/' + this.name + '/files',
 		// Path of file in query string
 		qs: { path: path },
+		json: false,
+		headers: {
+			'X-LXD-type': 'file',
+		}
 	});
+
+	return new Promise((resolve, reject) => {
+		stream.pipe(request);
+		stream.on('error', reject)
+		stream.on('end', resolve);
+	})
 };
 
 /**
@@ -225,7 +234,7 @@ Container.prototype.upload = function(content, path) {
 Container.prototype.download = function(path) {
 	return this.client.raw_request({
 		method: 'GET', 
-		path: '/containers/' + this.name + '/files',
+		url: '/containers/' + this.name + '/files',
 		// Path of file in query string
 		qs: { path: path },
 	})

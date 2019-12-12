@@ -11,7 +11,7 @@ function Pool(client, name) {
  * List storage volumes in this pool
  */
 Pool.prototype.list = function() {
-	return this.client.run_sync_operation({ method: 'GET', path: this.url })
+	return this.client.run_operation({ method: 'GET', url: this.url })
 		.then(list => {
 			return list
 				// Only get custom volumes
@@ -41,7 +41,7 @@ Pool.prototype.create_volume = function(name, clone_from = undefined) {
 		}
 	}
 
-	return this.client.run_sync_operation({ method: 'POST', path: this.url, data: config });
+	return this.client.run_operation({ method: 'POST', url: this.url, body: config });
 };
 
 
@@ -49,17 +49,14 @@ Pool.prototype.create_volume = function(name, clone_from = undefined) {
  * Destroy a storage volume
  */
 Pool.prototype.destroy_volume = function(name) {
-	return this.client.run_sync_operation({ method: 'DELETE', path: this.url + '/custom/' + name });
+	return this.client.run_operation({ method: 'DELETE', url: this.url + '/custom/' + name });
 };
 
 /**
  * List snapshots of volume
  */
 Pool.prototype.list_snapshots = function(volume_name) {
-	return this.client.run_sync_operation({ 
-		method: 'GET', 
-		path: this.url + '/custom/' + volume_name + '/snapshots', 
-	});
+	return this.client.run_operation({ url: this.url + '/custom/' + volume_name + '/snapshots', });
 };
 
 /**
@@ -68,7 +65,7 @@ Pool.prototype.list_snapshots = function(volume_name) {
 Pool.prototype.create_snapshot = function(volume_name, snapshot_name) {
 	return this.client.run_async_operation({ 
 		method: 'POST', 
-		path: this.url + '/custom/' + volume_name + '/snapshots', 
+		url: this.url + '/custom/' + volume_name + '/snapshots', 
 		data: { name: snapshot_name },
 	});
 };
@@ -77,9 +74,9 @@ Pool.prototype.create_snapshot = function(volume_name, snapshot_name) {
  * Destroy snapshot
  */
 Pool.prototype.destroy_snapshot = function(volume_name, snapshot_name) {
-	return this.client.run_sync_operation({
+	return this.client.run_operation({
 		method: 'DELETE', 
-		path: this.url + '/custom/' + volume_name + '/snapshots/' + snapshot_name, 
+		url: this.url + '/custom/' + volume_name + '/snapshots/' + snapshot_name, 
 	});
 };
 
