@@ -3,9 +3,9 @@ import extend from 'extend';
 import { Readable as readable } from 'stream';
 
 /**
- * Represents a lxc container
+ * Represents a lxd container
  * @constructor
- * @param {Client} client - LXC client container will use to talk to lxd api.
+ * @param {Client} client - lxd client container will use to talk to lxd api.
  * @param {string} name - Name of the container we will operate on.
  */
 function Container(client, name) {
@@ -14,7 +14,7 @@ function Container(client, name) {
 };
 
 /**
- * Create container from lxc image
+ * Create container from lxd image
  * @param {object} config - Post body to pass directly on creation
  */
 Container.prototype.create_from_image = function(config, target) {
@@ -116,7 +116,7 @@ Container.prototype.update = function(config) {
 }
 
 
-// Get config of this container from lxc list
+// Get config of this container from lxd list
 Container.prototype.get_info = function() {
 	return this.client.run_operation({ method: 'GET', url: '/containers/'+this.name });
 };

@@ -9,7 +9,7 @@ import Container from './container';
 import Pool from './pool';
 
 /**
- * Represents a lxc client
+ * Represents a lxd client
  * @constructor
  * @param {Object} config - Configuration for connecting to lxd backend
  */
@@ -36,7 +36,7 @@ function Client(config) {
 };
 
 /**
- * Reduce variables to lxc config object
+ * Reduce variables to lxd config object
  */
 function get_variables_as_config(variables) {
 	// Return undefined to not set anything when no vars are set
@@ -53,7 +53,7 @@ function get_variables_as_config(variables) {
 }
 
 /**
- * Reduce mounts array to lxc devices object
+ * Reduce mounts array to lxd devices object
  */
 function get_mounts_as_devices(mounts) {
 	return mounts.reduce((aggregate, mount) => {
@@ -67,7 +67,7 @@ function get_mounts_as_devices(mounts) {
 }
 
 /**
- * Reduce volumes array to lxc device object
+ * Reduce volumes array to lxd device object
  */
 function get_volumes_as_devices(volumes) {
 	return volumes.reduce((aggregate, volume) => {

@@ -6,7 +6,7 @@ import chaiAsPromised from 'chai-as-promised';
 chai.should();
 chai.use(chaiAsPromised);
 
-import LXC from '../src';
+import LXD from '../src';
 
 var multiline_string = `-----BEGIN RSA PRIVATE KEY-----
 MIIEpAIBAAKCAQEAsNoVoxT3QtvNXgXFMRXQTB/eCbrgMfYQ06nbMt2hyuVR7Ks3
@@ -69,9 +69,9 @@ var config = {
 	clone: 'clone',
 };
 
-var lxc = new LXC(config.client);
-var container = lxc.get_container(config.container.name);
-var pool = lxc.get_pool(config.pool);
+var lxd = new LXD(config.client);
+var container = lxd.get_container(config.container.name);
+var pool = lxd.get_pool(config.pool);
 
 describe('Pool', () => {
 	// Clean up clone
@@ -107,13 +107,13 @@ describe('Pool', () => {
 	});
 });
 
-describe('LXC Client', () => {
+describe('LXD Client', () => {
 	// Lazy fix for failing tests
 	before(function() {
 		this.timeout(5000);
-		var lxc = new LXC(config.client);
+		var lxd = new LXD(config.client);
 
-		return lxc.get_container(config.container.name).delete()
+		return lxd.get_container(config.container.name).delete()
 			.catch(err => {
 				if(err.error.error != 'not found')
 					throw err;
@@ -122,7 +122,7 @@ describe('LXC Client', () => {
 
 	describe('list()', () => {
 		it('Responds with a array', () => {
-			return lxc.list()
+			return lxd.list()
 				.should.eventually.be.a('array');
 		});
 	});
@@ -137,7 +137,7 @@ describe('LXC Client', () => {
 		it('Creates container', function() {
 			this.timeout(20000);
 
-			return lxc.get_container(config.container.name).launch(config.container.image)
+			return lxd.get_container(config.container.name).launch(config.container.image)
 				.then(container => container.get_state())
 				.should.eventually.have.property('status').that.equals('Running')
 		});
@@ -265,7 +265,7 @@ describe('Container', () => {
 			this.timeout(10000);
 
 			return container.delete()
-				.then(() => lxc.list())
+				.then(() => lxd.list())
 				.should.eventually.be.a('Array').that.not.contains(config.container.name);
 		});
 	});
