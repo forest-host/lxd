@@ -264,7 +264,6 @@ describe('Container', () => {
 		it('Streams readable stream to container');
 	})
 
-
 	describe('download()', () => {
 		it('Downloads a file from container', () => {
 			return container.download(config.container.download.source)
