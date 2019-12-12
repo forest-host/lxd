@@ -1,7 +1,7 @@
 
 import stream from 'stream';
 import fs from 'fs';
-import request from 'request-promise';
+import request from 'request-promise-native';
 import WebSocket from 'ws';
 import extend from '@forest.host/extend';
 
