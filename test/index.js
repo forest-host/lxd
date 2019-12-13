@@ -67,6 +67,7 @@ var config = {
 	pool: 'default',
 	volume: 'volume',
 	clone: 'clone',
+	snapshot: 'snapshot',
 };
 
 var lxd = new LXD(config.client);
@@ -98,6 +99,27 @@ describe('Pool', () => {
 		})
 	});
 
+	describe('create_snapshot()', () => {
+		it('Creates a snapshot', () => {
+			// Match only last part of path in url
+			const regex = /[^\/]+$/g;
+
+			return pool.create_snapshot(config.volume, config.snapshot)
+				.then(() => pool.list_snapshots(config.volume))
+				.then(array => array.map(uri => uri.match(regex)[0]))
+				.should.eventually.contain(config.snapshot);
+		});
+	});
+
+	describe('destroy_snapshot()', () => {
+		it('Destroys a snapshot', () => {
+			return pool.destroy_snapshot(config.volume, config.snapshot)
+				.then(() => pool.list_snapshots(config.volume))
+				.then(array => array.map(uri => uri.match(regex)[0]))
+				.should.eventually.not.contain(config.snapshot);
+		});
+	})
+
 	describe('destroy_volume()', () => {
 		it('Destroys a storage volume', () => {
 			return pool.destroy_volume(config.volume)
@@ -105,14 +127,6 @@ describe('Pool', () => {
 				.should.eventually.not.contain(config.volume);
 		});
 	});
-
-	describe('create_snapshot()', () => {
-		it('Creates a snapshot');
-	});
-
-	describe('destroy_snapshot()', () => {
-		it('Destroys a snapshot');
-	})
 });
 
 describe('LXD Client', () => {
