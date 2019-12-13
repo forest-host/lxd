@@ -105,6 +105,14 @@ describe('Pool', () => {
 				.should.eventually.not.contain(config.volume);
 		});
 	});
+
+	describe('create_snapshot()', () => {
+		it('Creates a snapshot');
+	});
+
+	describe('destroy_snapshot()', () => {
+		it('Destroys a snapshot');
+	})
 });
 
 describe('LXD Client', () => {

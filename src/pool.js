@@ -66,7 +66,7 @@ Pool.prototype.create_snapshot = function(volume_name, snapshot_name) {
 	return this.client.run_async_operation({ 
 		method: 'POST', 
 		url: this.url + '/custom/' + volume_name + '/snapshots', 
-		data: { name: snapshot_name },
+		body: { name: snapshot_name },
 	});
 };
 
