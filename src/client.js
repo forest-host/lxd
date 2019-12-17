@@ -274,20 +274,24 @@ function finalize_websocket_operation(sockets, operation, config) {
 Client.prototype.process_websocket_operation = function(operation, config) {
 	var sockets = {};
 
-	// We would like to listen to each socket
-	Object.keys(operation.metadata.fds).map(key => {
-		// Generate url from metadata
-		var url = this.config.websocket + '/operations/' + operation.id + '/websocket?secret=' + operation.metadata.fds[key];
+	try {
+		// We would like to listen to each socket
+		Object.keys(operation.metadata.fds).map(key => {
+			// Generate url from metadata
+			var url = this.config.websocket + '/operations/' + operation.id + '/websocket?secret=' + operation.metadata.fds[key];
 
-		// Create socket listening to url
-		sockets[key] = new WebSocket(url, {
-			cert: this.config.cert,
-			key: this.config.key,
-			port: this.config.port,
-			rejectUnauthorized: false,
-			ecdhCurve: 'secp384r1',
+			// Create socket listening to url
+			sockets[key] = new WebSocket(url, {
+				cert: this.config.cert,
+				key: this.config.key,
+				port: this.config.port,
+				rejectUnauthorized: false,
+				ecdhCurve: 'secp384r1',
+			});
 		});
-	});
+	} catch(err) {
+		return Promise.reject(err);
+	}
 
 	if(config.interactive)
 		return Promise.resolve(sockets);
