@@ -56,7 +56,7 @@ Container.prototype.action = function(action, force = false) {
 	return this.client.run_async_operation({
 		method: 'PUT',
 		url: '/containers/'+this.name+'/state',
-		body: { action, timeout: 30, force },
+		body: { action, timeout: 60, force },
 	})
 	.then(res => {
 		if(res.err)
