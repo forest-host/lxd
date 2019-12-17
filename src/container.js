@@ -195,12 +195,19 @@ Container.prototype.exec = function(cmd, args, options) {
  * Upload string to file in container
  */
 Container.prototype.upload_string = function(string, path) {
-	var stream = new readable;
-	stream.push(string);
-	// Why push 0
-	stream.push(null);
-
-	return this.upload(stream, path);
+	// TODO - Body used to be returned without content-type:json, check if this is still the case
+	return this.client.raw_request({
+		method: 'POST', 
+		url: '/containers/' + this.name + '/files',
+		// Path of file in query string
+		qs: { path: path },
+		json: false,
+		headers: {
+			'X-LXD-type': 'file',
+			'Content-Type': 'plain/text',
+		},
+		body: string,
+	});
 }
 
 /**
