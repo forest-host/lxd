@@ -120,7 +120,10 @@ Client.prototype.run_async_operation = function(config) {
       reject(new Error('Unable to open events socket'));
     }, 3000);
 
+    socket.on('close', () => console.log('events socket closed'));
+
 		socket.on('open', () => {
+      console.log('events socket opened');
       clearTimeout(timeout);
       resolve(socket)
     });
