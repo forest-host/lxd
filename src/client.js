@@ -114,11 +114,11 @@ Client.prototype.run_async_operation = function(config) {
 	// Wait for socket to open before executing operation
 	return new Promise((resolve, reject) => {
 		let socket = this.get_events_socket();
-    // If socket does not open, don't stay here waiting, give it a minute, which seems long imho
+    // If socket does not open, don't stay here waiting, give it some seconds
     let timeout = setTimeout(() => {
       socket.close();
       reject(new Error('Unable to open events socket'));
-    }, 60000);
+    }, 3000);
 
 		socket.on('open', () => {
       clearTimeout(timeout);
