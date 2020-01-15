@@ -74,6 +74,21 @@ var lxd = new LXD(config.client);
 var container = lxd.get_container(config.container.name);
 var pool = lxd.get_pool(config.pool);
 
+// Execute all promises in sequence, when done return output
+const map_series = function(things, callback, output = []) {
+  let thing = things.shift();
+  // Execute promise & remember output
+  return callback(thing).then(o => {
+    output.push(o);
+
+    if(things.length) {
+      return map_series(things, callback, output);
+    } else {
+      return output;
+    }
+  })
+}
+
 describe('Pool', () => {
 	// Clean up clone
 	after(() => pool.destroy_volume(config.clone))
@@ -241,6 +256,20 @@ describe('Container', () => {
 				.then(obj => obj.status)
 				.should.eventually.equal(1);
 		});
+
+    it('Does not hang at some point during sequential execution', function() {
+      this.timeout(20000);
+      let commands = [];
+
+      for(var i = 0; i < 20; i++) {
+        commands.push({ cmd: 'touch', args: ['cookie'] });
+        commands.push({ cmd: 'rm', args: ['cookie'] });
+      }
+
+      return map_series(commands, command => {
+        return container.exec(command.cmd, command.args);
+      })
+    })
 
 		it('Correctly handles multiline variables', () => {
 			return container

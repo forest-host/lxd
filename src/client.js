@@ -112,9 +112,18 @@ Client.prototype.get_events_socket = function() {
  */
 Client.prototype.run_async_operation = function(config) {
 	// Wait for socket to open before executing operation
-	return new Promise(resolve => {
-		var socket = this.get_events_socket();
-		socket.on('open', () => resolve(socket));
+	return new Promise((resolve, reject) => {
+		let socket = this.get_events_socket();
+    // If socket does not open, don't stay here waiting, give it a minute, which seems long imho
+    let timeout = setTimeout(() => {
+      socket.close();
+      reject(new Error('Unable to open events socket'));
+    }, 60000);
+
+		socket.on('open', () => {
+      clearTimeout(timeout);
+      resolve(socket)
+    });
 	})
 
 	// Request an operation
@@ -135,12 +144,14 @@ Client.prototype.run_async_operation = function(config) {
 			})
 			.then(output => {
 				// Terminate socket after succesful operation
-				socket.terminate();
+				//socket.terminate();
+        socket.close();
 				return output;
 			})
 			.catch(err => {
 				// Just in case something fails, destroy socket
-				socket.terminate();
+				//socket.terminate();
+        socket.close();
 				throw err;
 			})
 	})
