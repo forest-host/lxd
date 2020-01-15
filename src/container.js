@@ -169,7 +169,7 @@ Container.prototype.exec = function(cmd, args, options) {
 	args = Array.isArray(arguments[1]) ? arguments[1] : [];
 
 	// Change dir before command execution if cwd is set
-	cmd = 'cwd' in options ? `cd ${options.cwd}; ${cmd}` : cmd;
+	cmd = 'cwd' in options && options.cwd != '' ? `cd ${options.cwd}; ${cmd}` : cmd;
 
 	// Add args to cmd
 	cmd += args.length ? ' ' + args.join(' ') : '';
