@@ -207,7 +207,19 @@ Container.prototype.upload_string = function(string, path) {
 			'Content-Type': 'plain/text',
 		},
 		body: string,
-	});
+	})
+
+  .catch(err => {
+    let is_internal_error = err.message.indexOf('500') != -1;
+    let is_file_not_exist = err.message.indexOf('file does not exist') != -1;
+
+    // TODO - This temporarily tries to workaround https://github.com/lxc/lxd/issues/6644
+    if (is_internal_error && is_file_not_exist && retries > 0) {
+      console.log('LXD API returned 500 internal server error, retrying upload ' + retries + ' more times');
+      return new Promise(resolve => setTimeout(() => resolve(), wait_for))
+        .then(this.upload_string(string, path, retries - 1, wait_for + 200))
+    }
+  });
 }
 
 /**
