@@ -7,6 +7,7 @@ chai.should();
 chai.use(chaiAsPromised);
 
 import LXD from '../src';
+import { map_series } from '../src/util';
 
 var multiline_string = `-----BEGIN RSA PRIVATE KEY-----
 MIIEpAIBAAKCAQEAsNoVoxT3QtvNXgXFMRXQTB/eCbrgMfYQ06nbMt2hyuVR7Ks3
@@ -73,21 +74,6 @@ var config = {
 var lxd = new LXD(config.client);
 var container = lxd.get_container(config.container.name);
 var pool = lxd.get_pool(config.pool);
-
-// Execute all promises in sequence, when done return output
-const map_series = function(things, callback, output = []) {
-  let thing = things.shift();
-  // Execute promise & remember output
-  return callback(thing).then(o => {
-    output.push(o);
-
-    if(things.length) {
-      return map_series(things, callback, output);
-    } else {
-      return output;
-    }
-  })
-}
 
 describe('Pool', () => {
 	// Clean up clone
@@ -263,6 +249,7 @@ describe('Container', () => {
 
       for(var i = 0; i < 20; i++) {
         commands.push({ cmd: 'touch', args: ['cookie'] });
+        commands.push({ cmd: 'chmod', args: ['600', 'cookie'] });
         commands.push({ cmd: 'rm', args: ['cookie'] });
       }
 

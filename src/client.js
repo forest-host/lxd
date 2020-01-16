@@ -7,6 +7,7 @@ import extend from '@forest.host/extend';
 
 import Container from './container';
 import Pool from './pool';
+import { map_series } from './util';
 
 /**
  * Represents a lxd client
@@ -81,6 +82,29 @@ function get_volumes_as_devices(volumes) {
 	}, {});
 }
 
+function wait_for_socket_open(socket) {
+	// Wait for socket to open before executing operation
+	return new Promise((resolve, reject) => {
+    // If socket does not open, don't stay here waiting, give it some seconds
+    let timeout = setTimeout(() => {
+      socket.close();
+      reject(new Error('Unable to open socket'));
+    }, 3000);
+
+    // Call this when socket is ready to rumble
+    let callback = () => {
+      clearTimeout(timeout);
+      resolve(socket);
+    }
+
+    if (socket.readyState === WebSocket.OPEN) {
+      callback();
+    } else {
+      socket.on('open', callback);
+    }
+	})
+}
+
 /**
  * Get config that can be passed to lxd backend from env vars, mounts & volumes
  */
@@ -103,7 +127,7 @@ Client.prototype.get_events_socket = function() {
 		rejectUnauthorized: false,
 		// TODO - this was added because stuff was broken without it, 
 		// TODO node is complaining this does not adhere to the RFC 6066
-		ecdhCurve: 'secp384r1',
+		//ecdhCurve: 'secp384r1',
 	});
 }
 
@@ -112,52 +136,36 @@ Client.prototype.get_events_socket = function() {
  */
 Client.prototype.run_async_operation = function(config) {
 	// Wait for socket to open before executing operation
-	return new Promise((resolve, reject) => {
-		let socket = this.get_events_socket();
-    // If socket does not open, don't stay here waiting, give it some seconds
-    let timeout = setTimeout(() => {
-      socket.close();
-      reject(new Error('Unable to open events socket'));
-    }, 3000);
-
-    socket.on('close', () => console.log('events socket closed'));
-
-		socket.on('open', () => {
-      console.log('events socket opened');
-      clearTimeout(timeout);
-      resolve(socket)
-    });
-	})
-
-	// Request an operation
-	.then(socket => {
-		return this.run_operation(config)
-			// Wait for operation event
-			.then(operation => {
-				switch (operation.class) {
-					case 'task':
-						return this.process_task_operation(operation, socket);
-					case 'websocket':
-						return this.process_websocket_operation(operation, config);
-					case 'token':
-						return operation;
-					default: 
-						throw new Error('API returned unknown operation class');
-				}
-			})
-			.then(output => {
-				// Terminate socket after succesful operation
-				//socket.terminate();
-        socket.close();
-				return output;
-			})
-			.catch(err => {
-				// Just in case something fails, destroy socket
-				//socket.terminate();
-        socket.close();
-				throw err;
-			})
-	})
+  return wait_for_socket_open(this.get_events_socket())
+    // Request an operation
+    .then(socket => {
+      return this.run_operation(config)
+        // Wait for operation event
+        .then(operation => {
+          switch (operation.class) {
+            case 'task':
+              return this.process_task_operation(operation, socket);
+            case 'websocket':
+              return this.process_websocket_operation(operation, config);
+            case 'token':
+              return operation;
+            default: 
+              throw new Error('API returned unknown operation class');
+          }
+        })
+        .then(output => {
+          // Terminate socket after succesful operation
+          //socket.terminate();
+          socket.close();
+          return output;
+        })
+        .catch(err => {
+          // Just in case something fails, destroy socket
+          //socket.terminate();
+          socket.close();
+          throw err;
+        })
+    })
 };
 
 /**
@@ -190,7 +198,7 @@ Client.prototype.raw_request = function(config) {
 			port: this.config.port,
 			rejectUnauthorized: false,
 		},
-		ecdhCurve: 'secp384r1',
+		//ecdhCurve: 'secp384r1',
 		json: true,
 		method: 'GET'
 	};
@@ -291,28 +299,38 @@ function finalize_websocket_operation(sockets, operation, config) {
  * Process websocket operation of lxd api by connecting to sockets
  * @param {Object} operation - Operation returned from LXD api containing ws locations etc.
  */
-Client.prototype.process_websocket_operation = function(operation, config) {
-	var sockets = {};
+Client.prototype.process_websocket_operation = async function(operation, config) {
+  // Setup control socket first by reversing fds, do this because process will start after all fds except control are connected
+  // If we connect control last, it's possible to miss the close event
+  let file_descriptors = Object.keys(operation.metadata.fds).reverse();
 
-	// We would like to listen to each socket
-	Object.keys(operation.metadata.fds).map(key => {
-		// Generate url from metadata
-		var url = this.config.websocket + '/operations/' + operation.id + '/websocket?secret=' + operation.metadata.fds[key];
+  // "map" the keys of this object to new object of sockets
+  let sockets = await map_series(file_descriptors, key => {
+    // Generate url from metadata
+    var url = this.config.websocket + '/operations/' + operation.id + '/websocket?secret=' + operation.metadata.fds[key];
 
-		// Create socket listening to url
-		sockets[key] = new WebSocket(url, {
-			cert: this.config.cert,
-			key: this.config.key,
-			port: this.config.port,
-			rejectUnauthorized: false,
-			ecdhCurve: 'secp384r1',
-		});
-	});
+    // Create socket listening to url
+    let socket = new WebSocket(url, {
+      cert: this.config.cert,
+      key: this.config.key,
+      port: this.config.port,
+      rejectUnauthorized: false,
+      //ecdhCurve: 'secp384r1',
+    });
 
-	if(config.interactive)
-		return Promise.resolve(sockets);
+    // Wait for open & return
+    return wait_for_socket_open(socket)
+      .then(() => ({ [key]: socket }));
+  });
 
-	return finalize_websocket_operation.apply(this, [sockets, operation, config]);
+  // Create one object from all the small ones
+  sockets = Object.assign(...sockets);
+
+  // It is possible to pass interactive to config
+  if(config.interactive)
+    return Promise.resolve(sockets);
+
+  return finalize_websocket_operation.apply(this, [sockets, operation, config]);
 };
 
 
