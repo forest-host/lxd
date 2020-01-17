@@ -194,7 +194,7 @@ Container.prototype.exec = function(cmd, args, options) {
 /**
  * Upload string to file in container
  */
-Container.prototype.upload_string = function(string, path) {
+Container.prototype.upload_string = function(string, path, retries = 3, wait_for = 0) {
 	// TODO - Body used to be returned without content-type:json, check if this is still the case
 	return this.client.raw_request({
 		method: 'POST', 
