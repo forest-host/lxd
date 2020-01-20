@@ -154,14 +154,12 @@ Client.prototype.run_async_operation = function(config) {
           }
         })
         .then(output => {
-          // Terminate socket after succesful operation
-          //socket.terminate();
+          // Close events socket after succesful operation
           socket.close();
           return output;
         })
         .catch(err => {
-          // Just in case something fails, destroy socket
-          //socket.terminate();
+          // Just in case something fails, close socket
           socket.close();
           throw err;
         })
@@ -286,6 +284,10 @@ function finalize_websocket_operation(sockets, operation, config) {
 				// Use function here to have own scope
 				.then(function(operation) {
 					// Set exit code
+          if(typeof(operation.metadata.return) == "undefined") {
+            console.log(require('util').inspect(operation, false, null));
+          }
+
 					result.status = operation.metadata.return;
 
 					// Return exit code & stderr & stdout
