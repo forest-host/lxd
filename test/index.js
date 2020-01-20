@@ -51,7 +51,7 @@ var config = {
         type: 'image',
         properties: {
           os: "Alpine",
-          release: "3.10",
+          release: "3.11",
           architecture: "amd64"
         }
       }

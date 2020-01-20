@@ -270,6 +270,12 @@ function finalize_websocket_operation(sockets, operation, config) {
 			});
 		});
 
+    // TODO - Now we return on closed state of stdin/stdout socket. Before, we sometimes queried the operation before it was finished
+    // resulting in no status_code. See if this will solve that
+    sockets[0].on('close', () => {
+      resolve(result);
+    });
+
 		// Control socket closes when done executing
 		sockets.control.on('close', () => {
 			// Clear timeout as we can not send control signals through closed socket
@@ -278,23 +284,25 @@ function finalize_websocket_operation(sockets, operation, config) {
 
 			// When control closes, we can safely close the stdin/stdout socket
 			sockets[0].close();
-
-			// After getting output from sockets we need to get the statuscode from the operation
-			this.run_operation({ method: 'GET', url: '/operations/' + operation.id })
-				// Use function here to have own scope
-				.then(function(operation) {
-					// Set exit code
-          if(typeof(operation.metadata.return) == "undefined") {
-            console.log(require('util').inspect(operation, false, null));
-          }
-
-					result.status = operation.metadata.return;
-
-					// Return exit code & stderr & stdout
-					resolve(result);
-				});
 		});
-	});
+	})
+
+  .then(result => {
+    // After getting output from sockets we need to get the statuscode from the operation
+    return this.run_operation({ method: 'GET', url: '/operations/' + operation.id })
+      // Use function here to have own scope
+      .then(function(operation) {
+        // Set exit code
+        if(typeof(operation.metadata.return) == "undefined") {
+          console.log(require('util').inspect(operation, false, null));
+        }
+
+        result.status = operation.metadata.return;
+
+        // Return exit code & stderr & stdout
+        return result;
+      });
+  })
 }
 
 /**
