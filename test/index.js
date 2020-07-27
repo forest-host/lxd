@@ -51,7 +51,7 @@ var config = {
         type: 'image',
         properties: {
           os: "Alpine",
-          release: "3.11",
+          release: "3.12",
           architecture: "amd64"
         }
       }
@@ -114,6 +114,8 @@ describe('Pool', () => {
 
   describe('destroy_snapshot()', () => {
     it('Destroys a snapshot', () => {
+      const regex = /[^\/]+$/g;
+
       return pool.destroy_snapshot(config.volume, config.snapshot)
         .then(() => pool.list_snapshots(config.volume))
         .then(array => array.map(uri => uri.match(regex)[0]))
@@ -241,13 +243,18 @@ describe('Container', () => {
 
           // See if output matches
           sockets['0'].on('message', data => {
-            messages.push(data);
+            var string = data.toString('utf8').trim();
+
+            // Push strings onto output array, seperated by newline, use apply so we can pass split string as arguments to push
+            if(string) {
+              messages.push.apply(messages, string.split('\n'));
+            }
           });
 
           // When control closes, run tests
           sockets.control.on('close', () => {
             // When control closes, we need to close the stdin/stdout socket
-            sockets[0].terminate();
+            sockets[0].close();
             messages.map(m => m.toString().should.contain('test'))
             done()
           });

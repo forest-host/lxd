@@ -29,7 +29,7 @@ Pool.prototype.create_volume = function(name, clone_from = undefined) {
 	var config = {
 		config: {},
 		name,
-		type: 'custom',
+		//type: "custom",
 	};
 
 	// Add source when cloning from other volume
@@ -41,7 +41,7 @@ Pool.prototype.create_volume = function(name, clone_from = undefined) {
 		}
 	}
 
-	return this.client.run_operation({ method: 'POST', url: this.url, body: config });
+	return this.client.run_operation({ method: 'POST', url: this.url + '/custom', body: config });
 };
 
 

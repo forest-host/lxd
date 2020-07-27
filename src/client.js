@@ -269,8 +269,9 @@ function finalize_websocket_operation(sockets, operation, config) {
 		var string = data.toString('utf8').trim();
 
 		// Push strings onto output array, seperated by newline, use apply so we can pass split string as arguments to push
-		if(string)
+		if(string) {
 			result.output.push.apply(result.output, string.split('\n'));
+    }
 	});
 
 	return new Promise((resolve, reject) => {
@@ -299,8 +300,9 @@ function finalize_websocket_operation(sockets, operation, config) {
 		// Control socket closes when done executing
 		sockets.control.on('close', () => {
 			// Clear timeout as we can not send control signals through closed socket
-			if(config.timeout)
+			if(config.timeout) {
 				clearTimeout(timeout);
+      }
 
 			// When control closes, we can safely close the stdin/stdout socket
 			sockets[0].close();
@@ -347,10 +349,11 @@ Client.prototype.process_websocket_operation = async function(operation, config)
   sockets = Object.assign(...sockets);
 
   // It is possible to pass interactive to config
-  if(config.interactive)
+  if(config.interactive) {
     return Promise.resolve(sockets);
-
-  return finalize_websocket_operation.apply(this, [sockets, operation, config]);
+  } else {
+    return finalize_websocket_operation.apply(this, [sockets, operation, config]);
+  }
 };
 
 
