@@ -16,18 +16,18 @@
     ]
   },
   "dependencies": {
-    "@forest.host/extend": "^1.0.1",
-    "request": "^2.88.0",
-    "request-promise-native": "^1.0.8",
-    "ws": "^7.2.0"
+    "@forest.host/extend": "^1.0.2",
+    "request": "^2.88.2",
+    "request-promise-native": "^1.0.9",
+    "ws": "^7.3.1"
   },
   "devDependencies": {
     "chai": "^4.2.0",
     "chai-as-promised": "^7.1.1",
-    "@babel/cli": "^7.7.5",
-    "@babel/core": "^7.7.5",
-    "@babel/plugin-transform-modules-commonjs": "^7.7.5",
-    "@babel/register": "^7.7.4",
-    "mocha": "^6.2.2"
+    "@babel/cli": "^7.10.5",
+    "@babel/core": "^7.10.5",
+    "@babel/plugin-transform-modules-commonjs": "^7.10.4",
+    "@babel/register": "^7.10.5",
+    "mocha": "^8.0.1"
   }
 }
