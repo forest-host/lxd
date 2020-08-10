@@ -23,6 +23,7 @@ Pool.prototype.list = function() {
 
 /**
  * Create a volume in this storage pool, possibly on cluster target
+ * TODO - Ugly stuff, make volume a model & pass that to a "clone_from" function or something
  */
 Pool.prototype.create_volume = function(name, clone_from = undefined) {
 	// Volume config
@@ -34,11 +35,19 @@ Pool.prototype.create_volume = function(name, clone_from = undefined) {
 
 	// Add source when cloning from other volume
 	if(typeof(clone_from) != 'undefined') {
-		config.source = {
-			pool: this.name,
-			name: clone_from,
-			type: "copy"
-		}
+    if(typeof(clone_from) == 'string') {
+      config.source = {
+        pool: this.name,
+        name: clone_from,
+        type: "copy"
+      }
+    } else if (typeof(clone_from) == 'object' && clone_from.hasOwnProperty('name') && clone_from.hasOwnProperty('storage_pool')) {
+      config.source = {
+        pool: clone_from.storage_pool,
+        name: clone_from.name,
+        type: "copy"
+      }
+    }
 	}
 
 	return this.client.run_operation({ method: 'POST', url: this.url + '/custom', body: config });
