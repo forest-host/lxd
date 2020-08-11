@@ -39,13 +39,15 @@ Pool.prototype.create_volume = function(name, clone_from = undefined) {
       config.source = {
         pool: this.name,
         name: clone_from,
-        type: "copy"
+        type: "copy",
+        volume_only: true,
       }
     } else if (typeof(clone_from) == 'object' && clone_from.hasOwnProperty('name') && clone_from.hasOwnProperty('storage_pool')) {
       config.source = {
         pool: clone_from.storage_pool,
         name: clone_from.name,
-        type: "copy"
+        type: "copy",
+        volume_only: true,
       }
     }
 	}
