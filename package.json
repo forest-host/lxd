@@ -1,6 +1,6 @@
 {
   "name": "@forest.host/lxd",
-  "version": "0.4.19",
+  "version": "0.4.20",
   "repository": "git@github.com:suprasoil/lxd.git",
   "description": "Simple nodejs LXD client",
   "main": "lib/index.js",
