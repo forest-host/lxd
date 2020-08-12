@@ -64,6 +64,13 @@ Pool.prototype.destroy_volume = function(name) {
 };
 
 /**
+ * Get volume info blob
+ */
+Pool.prototype.volume_info = function(name) {
+	return this.client.run_operation({ method: 'GET', url: this.url + '/custom/' + name });
+}
+
+/**
  * List snapshots of volume
  */
 Pool.prototype.list_snapshots = function(volume_name) {

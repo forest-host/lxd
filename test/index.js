@@ -100,6 +100,13 @@ describe('Pool', () => {
     })
   });
 
+  describe('volume_info()', () => {
+    it('Returns info object for volume', async () => {
+      let info = await pool.volume_info(config.volume);
+      info.should.have.property('name').that.equals(config.volume);
+    })
+  });
+
   describe('create_snapshot()', () => {
     it('Creates a snapshot', () => {
       // Match only last part of path in url
@@ -200,9 +207,9 @@ describe('Container', () => {
   });
 
   describe('get_info()', () => {
-    it('Returns config of container', () => {
-      return container.get_info()
-        .then(config => config.should.have.property('name'));
+    it('Returns config of container', async () => {
+      let info = await container.get_info();
+      info.should.have.property('name');
     });
   });
 
