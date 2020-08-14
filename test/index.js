@@ -6,7 +6,7 @@ import chaiAsPromised from 'chai-as-promised';
 chai.should();
 chai.use(chaiAsPromised);
 
-import LXD from '../src';
+import { LXD, Volume, Snapshot } from '../src';
 import { map_series } from '../src/util';
 
 var multiline_string = `-----BEGIN RSA PRIVATE KEY-----
@@ -77,15 +77,115 @@ var pool = lxd.get_pool(config.pool);
 
 describe('Pool', () => {
   // Clean up clone
-  after(() => pool.destroy_volume(config.clone))
+  //after(() => pool.destroy_volume(config.clone))
 
   describe('list()', () => {
     it('Lists custom storage volumes in pool', () => {
       return pool.list()
-        .should.eventually.be.a('Array').that.not.contains(config.volume);
+        .should.eventually.be.a('Array')
+        .that.not.contains(config.volume);
     });
   });
 
+  describe('get_volume()', () => {
+    it('Returns volume representation', () => {
+      let volume = pool.get_volume(config.volume);
+      volume.should.be.instanceOf(Volume);
+    })
+  })
+});
+
+describe('Volume', () => {
+  let volume = pool.get_volume(config.volume);
+
+  describe('create()', () => {
+    before(() => volume.create())
+
+    it('Creates new storage volume', async () => {
+      let list = await pool.list();
+
+      list.should.contain(config.volume);
+    })
+    it('Loads volume config', () => {
+      volume.config.name.should.equal(config.volume);
+    })
+  })
+
+  describe('load()', () => {
+    before(() => {
+      delete volume.config;
+      return volume.load();
+    })
+
+    it('Loads volume config', () => {
+      volume.config.name.should.equal(config.volume);
+    })
+  })
+
+  describe('destroy()', () => {
+    before(() => volume.destroy());
+
+    it('Destroys volume', async () => {
+      let list = await pool.list();
+      list.should.not.contain(config.volume);
+    });
+    it('Unsets config', () => {
+      volume.should.not.have.property('config');
+    })
+  })
+
+  describe('get_snapshot()', () => {
+    it('Returns snapshot representation', () => {
+      let snapshot = volume.get_snapshot(config.snapshot);
+      snapshot.should.be.instanceOf(Snapshot);
+    })
+  })
+})
+
+describe('Snapshot', () => {
+  let volume = pool.get_volume(config.volume);
+  let snapshot = volume.get_snapshot(config.snapshot);
+
+  before(() => volume.create());
+  after(() => volume.destroy());
+
+  describe('create()', () => {
+    before(() => snapshot.create());
+
+    it('Creates snapshot', async () => {
+      let list = await volume.list_snapshots();
+      list.should.contain(config.snapshot);
+    });
+    it('Loads snapshot config', () => {
+      snapshot.config.name.should.equal(config.snapshot);
+    });
+  });
+
+  describe('load()', () => {
+    before(() => {
+      delete snapshot.config;
+      return snapshot.load();
+    });
+
+    it('Loads snapshot config', () => {
+      snapshot.config.name.should.equal(config.snapshot);
+    });
+  });
+
+  describe('destroy()', () => {
+    before(() => snapshot.destroy());
+
+    it('Destroys snapshot', async () => {
+      let list = await volume.list_snapshots();
+      list.should.not.contain(config.snapshot);
+    });
+    it('Unsets snapshot config', () => {
+      snapshot.should.not.have.property('config');
+    });
+  });
+})
+
+/*
   describe('create_volume()', () => {
     it('Creates a new storage volume', () => {
       return pool.create_volume(config.volume)
@@ -138,6 +238,7 @@ describe('Pool', () => {
     });
   });
 });
+*/
 
 describe('LXD Client', () => {
   // Lazy fix for failing tests

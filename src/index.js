@@ -1,4 +1,12 @@
 
 import Client from './client';
+import Volume from './volume';
+import Snapshot from './snapshot';
 
-module.exports = Client;
+export {
+  Client as LXD,
+  Volume,
+  Snapshot,
+}
+
+export default Client;
