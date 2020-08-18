@@ -6,7 +6,7 @@ import chaiAsPromised from 'chai-as-promised';
 chai.should();
 chai.use(chaiAsPromised);
 
-import { LXD, Volume, Snapshot } from '../src';
+import { LXD, Container, Volume, Snapshot } from '../src';
 import { map_series } from '../src/util';
 
 var multiline_string = `-----BEGIN RSA PRIVATE KEY-----
@@ -46,16 +46,8 @@ var config = {
   },
   container: {
     name: 'test',
-    image: {
-      source: {
-        type: 'image',
-        properties: {
-          os: "Alpine",
-          release: "3.12",
-          architecture: "amd64"
-        }
-      }
-    },
+    os: 'Alpine',
+    release: '3.12',
     upload: {
       content: 'string',
       path: '/uploaded.txt',
@@ -185,196 +177,131 @@ describe('Snapshot', () => {
   });
 })
 
-/*
-  describe('create_volume()', () => {
-    it('Creates a new storage volume', () => {
-      return pool.create_volume(config.volume)
-        .then(() => pool.list())
-        .should.eventually.contain(config.volume);
-    });
-
-    it('Copies storage volumes', () => {
-      return pool.create_volume(config.clone, config.volume)
-        .then(() => pool.list())
-        .should.eventually.contain(config.clone);
-    })
-  });
-
-  describe('volume_info()', () => {
-    it('Returns info object for volume', async () => {
-      let info = await pool.volume_info(config.volume);
-      info.should.have.property('name').that.equals(config.volume);
-    })
-  });
-
-  describe('create_snapshot()', () => {
-    it('Creates a snapshot', () => {
-      // Match only last part of path in url
-      const regex = /[^\/]+$/g;
-
-      return pool.create_snapshot(config.volume, config.snapshot)
-        .then(() => pool.list_snapshots(config.volume))
-        .then(array => array.map(uri => uri.match(regex)[0]))
-        .should.eventually.contain(config.snapshot);
-    });
-  });
-
-  describe('destroy_snapshot()', () => {
-    it('Destroys a snapshot', () => {
-      const regex = /[^\/]+$/g;
-
-      return pool.destroy_snapshot(config.volume, config.snapshot)
-        .then(() => pool.list_snapshots(config.volume))
-        .then(array => array.map(uri => uri.match(regex)[0]))
-        .should.eventually.not.contain(config.snapshot);
-    });
-  })
-
-  describe('destroy_volume()', () => {
-    it('Destroys a storage volume', () => {
-      return pool.destroy_volume(config.volume)
-        .then(() => pool.list())
-        .should.eventually.not.contain(config.volume);
-    });
-  });
-});
-*/
-
 describe('LXD Client', () => {
   // Lazy fix for failing tests
-  before(function() {
-    this.timeout(5000);
-    var lxd = new LXD(config.client);
-
-    return container.delete()
-      .catch(err => {
-        if(err.error.error != 'not found')
-          throw err;
-      });
-  })
-
   describe('list()', () => {
-    it('Responds with a array', () => {
-      return lxd.list()
-        .should.eventually.be.a('array');
+    it('Responds with a array', async () => {
+      let list = await lxd.list();
+      list.should.be.a('array').that.not.includes(config.container.name);
     });
   });
 
   describe('get_container()', () => {
     it('Returns container instance', () => {
-      container.should.be.a('object');
+      container.should.be.instanceOf(Container);
     });
   });
 });
 
 describe('Container', () => {
-  describe('launch()', () => {
-    after(function() {
-      this.timeout(20000);
-      return container.delete();
+  describe('from_image()', () => {
+    before(() => container.from_image(config.container.os, config.container.release));
+
+    it('Sets container image', () => {
+      container.image.should.not.be.undefined;
     });
+  });
+
+  describe('on_target()', () => {
+    it('Sets up container on specific host in LXD cluster');
+  })
+
+  describe('create()', () => {
+    before(() => container.create())
 
     it('Creates container', () => {
-      return container.launch(config.container.image)
-        .then(container => container.get_state())
-        .should.eventually.have.property('status').that.equals('Running')
+      lxd.list().should.eventually.contain(config.container.name);
     });
-  });
 
-  describe('create_from_image()', () => {
-    it('Creates stopped container', () => {
-      return container.create_from_image(config.container.image)
-        .then(container => container.get_state())
-        .should.eventually.have.property('status').that.equals('Stopped')
+    it('Loads config', () => {
+      container.config.should.have.property('name').that.equals(config.container.name);
     })
   })
 
-  describe('start()', () => {
-    it('Starts stopped container', () => {
-      return container.start()
-        .then(container => container.get_state())
-        .should.eventually.have.property('status').that.equals('Running')
+  describe('state()', () => {
+    it('Changes container state', async () => {
+      await container.state('start');
+      let state = await container.get_state();
+      state.should.have.property('status').that.equals('Running');
     })
   })
-
-  describe('wait_for_dhcp()', () => {
-    it('Returns address after dhcp is done', function() {
-      this.timeout(40000);
-
-      return container.wait_for_dhcp()
-        .then(() => container.get_ipv4_addresses())
-        .should.eventually.have.length(1);
-    });
-  });
-
-  describe('get_info()', () => {
-    it('Returns config of container', async () => {
-      let info = await container.get_info();
-      info.should.have.property('name');
-    });
-  });
 
   describe('get_state()', () => {
-    it('returns state of container', () => {
-      return container.get_state()
-        .then(state => state.status.should.equal('Running'));
+    it('returns state of container', async () => {
+      let state = await container.get_state();
+      state.status.should.equal('Running');
     });
+  });
+
+  describe('wait_for_dhcp()', () => {
+    it('Waits for dhcp lease', async function() {
+      this.timeout(10000);
+
+      await container.wait_for_dhcp()
+      let addresses = await container.get_ipv4_addresses();
+      addresses.should.have.length(1);
+    });
+  });
+
+  describe('load()', () => {
+    before(() => {
+      delete container.config;
+      return container.load();
+    });
+
+    it('Loads config', () => {
+      container.config.should.have.property('name').that.equals(config.container.name);
+    })
   });
 
   describe('exec()', () => {
-    it('Executes command in container', () => {
-      return container.exec('hostname')
-      // Get first line
-        .then(obj => obj.output[0])
-      // TODO returns object
-        .should.eventually.contain(config.container.name);
+    it('Executes command in container', async () => {
+      let { output } = await container.exec('hostname')
+      output[0].should.contain(config.container.name);
     });
 
-    it('Interrupts commands that run longer than timeout when timeout is passed', () => {
+    it('Interrupts commands that run longer than timeout when timeout is passed', async () => {
       // Timeout is in millis
-      return container.exec('sleep', ['3;', 'echo', 'test'], { timeout: 500 })
-        .then(obj => {
-          obj.output.should.have.length(0);
-          obj.status.should.be.above(0);
-        })
+      let command = await container.exec('sleep', ['3;', 'echo', 'test'], { timeout: 500 });
+      command.output.should.have.length(0);
+      command.status.should.be.above(0);
     });
 
     // TODO - it should be possible to get command return code after command is done
     // probably do this by using operation classes
-    it('Returns sockets when interactive is passed', done => {
-      container.exec('echo', ['test'], { interactive: true })
-        .then(sockets => {
-          let messages = [];
+    it('Returns sockets when interactive is passed', async () => {
+      let sockets = await container.exec('echo', ['test'], { interactive: true })
+      let messages = [];
 
-          sockets.should.have.property('control');
-          sockets.should.have.property('0');
+      sockets.should.have.property('control');
+      sockets.should.have.property('0');
 
-          // See if output matches
-          sockets['0'].on('message', data => {
-            var string = data.toString('utf8').trim();
+      // See if output matches
+      sockets['0'].on('message', data => {
+        var string = data.toString('utf8').trim();
 
-            // Push strings onto output array, seperated by newline, use apply so we can pass split string as arguments to push
-            if(string) {
-              messages.push.apply(messages, string.split('\n'));
-            }
-          });
+        // Push strings onto output array, seperated by newline, use apply so we can pass split string as arguments to push
+        if(string) {
+          messages.push.apply(messages, string.split('\n'));
+        }
+      });
 
-          // When control closes, run tests
-          sockets.control.on('close', () => {
-            // When control closes, we need to close the stdin/stdout socket
-            sockets[0].close();
-            messages.map(m => m.toString().should.contain('test'))
-            done()
-          });
-        })
+      await new Promise(resolve => {
+        // When control closes, run tests
+        sockets.control.on('close', () => {
+          // When control closes, we need to close the stdin/stdout socket
+          sockets[0].close();
+          messages.map(m => m.toString().should.contain('test'))
+          resolve();
+        });
+      })
     });
 
     it('Returns operation when interactive is passed, making it possible to get command return code');
 
-    it('Returns return-code for commands', () => {
-      return container.exec('rm', ['/not/existing/directory'])
-        .then(obj => obj.status)
-        .should.eventually.equal(1);
+    it('Returns return-code for commands', async () => {
+      let { status } = await container.exec('rm', ['/not/existing/directory'])
+      status.should.equal(1);
     });
 
     it('Does not hang at some point during sequential execution', function() {
@@ -392,32 +319,26 @@ describe('Container', () => {
       })
     })
 
-    it('Correctly handles multiline variables', () => {
-      return container
-        .patch({ config: { 'environment.PRIVATE_KEY': multiline_string }})
-        .then(() => container.get_info())
-        .then(info => info.config['environment.PRIVATE_KEY'])
-        .then(output => {
-          output.should.equal(multiline_string);
-        });
+    it('Correctly handles multiline variables', async () => {
+      await container.patch({ config: { 'environment.PRIVATE_KEY': multiline_string }});
+      container.config.config['environment.PRIVATE_KEY'].should.equal(multiline_string);
     });
   });
 
   describe('patch()', () => {
+    before(() => container.patch({ config: { 'environment.CONTAINER_NAME': config.container.name } }));
+
     it('Updates container config', () => {
-      return container
-        .patch({ config: { 'environment.CONTAINER_NAME': config.container.name } })
-        .then(() => container.get_info())
-        .should.eventually.have.property('config').that.has.property('environment.CONTAINER_NAME').that.equals(config.container.name);
+      container.config.config.should.have.property('environment.CONTAINER_NAME').that.equals(config.container.name);
     });
   });
 
   describe('upload_string()', () => {
-    it('Uploads a string to a file in container', () => {
-      return container.upload_string(config.container.upload.content, config.container.upload.path)
-        .then(() => container.exec('cat', [config.container.upload.path]))
-        .then(obj => obj.output)
-        .should.eventually.contain(config.container.upload.content);
+    before(() => container.upload_string(config.container.upload.content, config.container.upload.path));
+
+    it('Uploads a string to a file in container', async () => {
+      let { output } = await container.exec('cat', [config.container.upload.path]);
+      output.should.contain(config.container.upload.content);
     })
   });
 
@@ -433,12 +354,15 @@ describe('Container', () => {
   })
 
   describe('delete()', () => {
-    it('Deletes container', function() {
-      this.timeout(10000);
+    it('does not delete running container', () => {
+      container.destroy().should.be.rejected;
+    });
 
-      return container.delete()
-        .then(() => lxd.list())
-        .should.eventually.be.a('Array').that.not.contains(config.container.name);
+    it('Deletes stopped container', async () => {
+      await container.stop();
+      await container.destroy()
+      let list = await lxd.list();
+      list.should.be.a('Array').that.not.contains(config.container.name);
     });
   });
 });

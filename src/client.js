@@ -1,4 +1,5 @@
 
+import path from 'path';
 import stream from 'stream';
 import fs from 'fs';
 import request from 'request-promise-native';
@@ -363,8 +364,9 @@ Client.prototype.get_container = function(name) {
 };
 
 // Get json list of containers
-Client.prototype.list = function() {
-	return this.run_operation({ method: 'GET', url: '/containers'});
+Client.prototype.list = async function() {
+	let list = await this.run_operation({ method: 'GET', url: '/containers'});
+  return list.map(url => path.basename(url));
 };
 
 // Get volume instance
