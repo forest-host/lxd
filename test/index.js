@@ -359,7 +359,7 @@ describe('Container', () => {
     });
 
     it('Deletes stopped container', async () => {
-      await container.stop();
+      await container.action('stop');
       await container.destroy()
       let list = await lxd.list();
       list.should.be.a('Array').that.not.contains(config.container.name);
