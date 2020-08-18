@@ -358,8 +358,9 @@ describe('Container', () => {
       container.destroy().should.be.rejected;
     });
 
-    it('Deletes stopped container', async () => {
-      await container.action('stop');
+    it('Deletes stopped container', async function() {
+      this.timeout(30000);
+      await container.state('stop');
       await container.destroy()
       let list = await lxd.list();
       list.should.be.a('Array').that.not.contains(config.container.name);

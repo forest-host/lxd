@@ -110,13 +110,11 @@ export default class Container {
 
   async patch(body) {
     let response = await this.client.run_operation({ method: 'PATCH', url: this.url(), body, });
-    console.log(response);
     return this.load();
   }
 
   async put(body) {
     let response = await this.client.run_async_operation({ method: 'PUT', url: this.url(), body, })
-    console.log(response);
     return this.load();
   }
 
