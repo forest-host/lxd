@@ -14,19 +14,19 @@ export default class Volume {
   }
 
   async load() {
-    let response = await this.pool.client.run_operation({ url: this.url() });
+    let response = await this.pool.client.operation().get(this.url());
     this.config = response;
 
     return this;
   }
 
   async create() {
-    await this.pool.client.run_operation({ method: 'POST', url: this.pool.url(), body: { name: this.name } });
+    await this.pool.client.operation().post(this.pool.url(), { name: this.name });
     return this.load();
   }
 
   async destroy() {
-    await this.pool.client.run_operation({ method: 'DELETE', url: this.url() });
+    await this.pool.client.operation().delete(this.url());
     delete this.config;
 
     return this;
@@ -70,7 +70,7 @@ export default class Volume {
   }
 
   async list_snapshots() {
-    let list = await this.pool.client.run_operation({ url: `${this.url()}/snapshots`, });
+    let list = await this.pool.client.operation().get(`${this.url()}/snapshots`);
     return list.map(url => path.basename(url));
   }
 }

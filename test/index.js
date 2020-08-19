@@ -68,9 +68,6 @@ var container = lxd.get_container(config.container.name);
 var pool = lxd.get_pool(config.pool);
 
 describe('Pool', () => {
-  // Clean up clone
-  //after(() => pool.destroy_volume(config.clone))
-
   describe('list()', () => {
     it('Lists custom storage volumes in pool', () => {
       return pool.list()
@@ -88,6 +85,15 @@ describe('Pool', () => {
 });
 
 describe('Volume', () => {
+  // Clean up failed previous runs
+  before(async () => {
+    let list = await pool.list();
+
+    if(list.indexOf(config.volume) !== -1) {
+      return pool.get_volume(config.volume).destroy();
+    }
+  });
+
   let volume = pool.get_volume(config.volume);
 
   describe('create()', () => {
@@ -178,7 +184,16 @@ describe('Snapshot', () => {
 })
 
 describe('LXD Client', () => {
-  // Lazy fix for failing tests
+  // Clean up previously failed tests
+  before(async function() {
+    this.timeout(30000);
+    let list = await lxd.list();
+    if(list.indexOf(config.container.name) !== -1) {
+      await lxd.get_container(config.container.name).state('stop');
+      await lxd.get_container(config.container.name).destroy();
+    }
+  })
+
   describe('list()', () => {
     it('Responds with a array', async () => {
       let list = await lxd.list();

@@ -13,7 +13,7 @@ export default class Container {
   }
 
   async load() {
-    let response = await this.client.run_operation({ url: this.url() });
+    let response = await this.client.operation().get(this.url());
     this.config = response;
 
     return this;
@@ -30,39 +30,33 @@ export default class Container {
   }
 
   async create() {
-    let config = {
-      method: 'POST',
-      url: '/instances',
-      body: {
-        name: this.name,
-        architecture: 'x86_64',
-        // Defaults
-        profiles: typeof this.profiles !== undefined ? this.profiles : ['default'],
-        ephemeral: typeof this.ephemeral !== undefined ? this.ephemeral : false,
-      },
+    let body = {
+      name: this.name,
+      architecture: 'x86_64',
+      // Defaults
+      profiles: typeof this.profiles !== undefined ? this.profiles : ['default'],
+      ephemeral: typeof this.ephemeral !== undefined ? this.ephemeral : false,
     };
 
     if(typeof this.image !== undefined) {
-      config.body.source = { type: 'image', properties: this.image };
+      body.source = { type: 'image', properties: this.image };
     }
 
-    if(typeof this.target !== undefined) {
-      config.qs = { target: this.target };
-    }
+    // TODO 
+    //if(typeof this.target !== undefined) {
+      //config.qs = { target: this.target };
+    //}
 
     // Create container
-    await this.client.run_async_operation(config)
+    await this.client.async_operation().post('/instances', body)
     return this.load();
   }
 
   // (stop, start, restart, freeze or unfreeze)
   async state(action, force = false, timeout = 60, stateful = false) {
     // create container request
-    let response = await this.client.run_async_operation({
-      method: 'PUT',
-      url: `${this.url()}/state`,
-      body: { action, timeout, force, stateful },
-    });
+    let response = await this.client.async_operation()
+      .put(`${this.url()}/state`, { action, timeout, force, stateful })
 
     if(response.err) {
       return Promise.reject(response.err);
@@ -72,7 +66,7 @@ export default class Container {
   }
 
   get_state() {
-    return this.client.run_operation({ url: `${this.url()}/state` });
+    return this.client.operation().get(`${this.url()}/state`);
   }
 
   // TODO - Make this general IPV4 & IPV6 logic
@@ -102,19 +96,19 @@ export default class Container {
   }
 
   async destroy() {
-    await this.client.run_async_operation({ method: 'DELETE', url: this.url() });
+    await this.client.async_operation().delete(this.url());
     delete this.config;
 
     return this;
   }
 
   async patch(body) {
-    let response = await this.client.run_operation({ method: 'PATCH', url: this.url(), body, });
+    let response = await this.client.operation().patch(this.url(), body);
     return this.load();
   }
 
   async put(body) {
-    let response = await this.client.run_async_operation({ method: 'PUT', url: this.url(), body, })
+    let response = await this.client.async_operation().put(this.url(), body);
     return this.load();
   }
 
@@ -128,28 +122,32 @@ export default class Container {
 
     // Change dir before command execution if cwd is set
     cmd = 'cwd' in options && options.cwd != '' ? `cd ${options.cwd}; ${cmd}` : cmd;
-
     // Add args to cmd
     cmd += args.length ? ' ' + args.join(' ') : '';
 
     // Run command with joined args on container
-    return this.client.run_async_operation({ 
-      method: 'POST', 
-      url: `${this.url()}/exec`,
-      body: {
-        command: ['/bin/sh', '-c', cmd],
-        environment: options.environment || {},
-        'wait-for-websocket': true,
-        interactive: true,
-      },
-      timeout: options.timeout,
-      interactive: options.interactive,
-    });
+    let body = {
+      command: ['/bin/sh', '-c', cmd],
+      environment: options.environment || {},
+      'wait-for-websocket': true,
+      interactive: true,
+    };
+
+    let operation = this.client.async_operation();
+
+    if(typeof(options.interactive) === 'boolean' && options.interactive) {
+      operation.interactive();
+    }
+    if(typeof(options.timeout) === 'number') {
+      operation.timeout(options.timeout);
+    }
+
+    return operation.post(`${this.url()}/exec`, body);
   }
 
   upload_string(string, path) {
     // TODO - Body used to be returned without content-type:json, check if this is still the case
-    return this.client.raw_request({
+    return this.client.request({
       method: 'POST', 
       url: `${this.url()}/files`,
       qs: { path: path },
@@ -163,7 +161,7 @@ export default class Container {
   }
 
   upload(stream, path) {
-    let request = this.client.raw_request({
+    let request = this.client.request({
       method: 'POST', 
       url: `${this.url()}/files`,
       qs: { path: path },
@@ -185,7 +183,7 @@ export default class Container {
   }
 
   download(path) {
-    return this.client.raw_request({ url: `${this.url()}/files`, qs: { path: path } })
+    return this.client.request({ url: `${this.url()}/files`, qs: { path: path } })
   }
 }
 

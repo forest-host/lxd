@@ -14,7 +14,7 @@ class Pool {
 
   async list() {
     // Get custom volumes
-    let list = await this.client.run_operation({ method: 'GET', url: this.url() })
+    let list = await this.client.operation().get(this.url());
 
     // Only get volume names
     return list.map(uri => path.basename(uri));

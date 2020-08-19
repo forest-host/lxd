@@ -10,24 +10,20 @@ export default class Snapshot {
   }
 
   async load() {
-    let response = await this.volume.pool.client.run_operation({ url: this.url() })
+    let response = await this.volume.pool.client.operation().get(this.url());
     this.config = response;
 
     return this;
   }
 
   async create() {
-    await this.volume.pool.client.run_async_operation({ 
-      method: 'POST', 
-      url: `${this.volume.url()}/snapshots`,
-      body: { name: this.name },
-    });
+    await this.volume.pool.client.async_operation().post(`${this.volume.url()}/snapshots`, { name: this.name });
 
     return this.load();
   }
 
   async destroy() {
-    await this.volume.pool.client.run_operation({ method: 'DELETE', url: this.url() });
+    await this.volume.pool.client.operation().delete(this.url());
     delete this.config;
 
     return this;

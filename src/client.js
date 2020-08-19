@@ -6,20 +6,16 @@ import request from 'request-promise-native';
 import WebSocket from 'ws';
 import extend from '@forest.host/extend';
 
+import { AsyncOperation, Operation } from './operation';
 import Container from './container';
 import Pool from './pool';
 import { map_series, wait_for_socket_open } from './util';
 
 export default class Client {
   constructor(config) {
-    // Config defaults
-    let defaults = {
-      api_version: '1.0',
-    };
-
-    // Overwrite defaults with config
-    this.config = extend(defaults, config);
-    this.config.websocket = `wss://${this.config.host}:${this.config.port}/${this.config.api_version}`;
+    // Add defaults
+    this.config = extend({ api_version: '1.0', }, config);
+    this.config.base_url = `${this.config.host}:${this.config.port}/${this.config.api_version}`;
 
     // Load certs if string was passed
     if(typeof(this.config.cert) == 'string') {
@@ -28,6 +24,13 @@ export default class Client {
     if(typeof(this.config.key) == 'string') {
       this.config.key = fs.readFileSync(this.config.key);
     }
+
+    this.agentOptions = {
+      cert: this.config.cert,
+      key: this.config.key,
+      port: this.config.port,
+      rejectUnauthorized: false,
+    };
   }
 
   // TODO - Remove this, add functions to container to add vars, to add mounts & to add volumes
@@ -38,47 +41,40 @@ export default class Client {
     };
   }
 
-  get_events_socket() {
+  open_socket(url) {
     // Get events listener 
-    return new WebSocket(this.config.websocket + '/events?type=operation', {
-      cert: this.config.cert,
-      key: this.config.key,
-      port: this.config.port,
-      rejectUnauthorized: false,
-      // TODO - this was added because stuff was broken without it, 
-      // TODO node is complaining this does not adhere to the RFC 6066
-      //ecdhCurve: 'secp384r1',
-    });
+    return new WebSocket(`wss://${this.config.base_url}${url}`, this.agentOptions);
   }
 
-  raw_request(config) {
-    let defaults = {
-      agentOptions: {
-        cert: this.config.cert,
-        key: this.config.key,
-        port: this.config.port,
-        rejectUnauthorized: false,
-      },
-      //ecdhCurve: 'secp384r1',
-      json: true,
-      method: 'GET'
-    };
-
-    let data = extend(defaults, config);
-
+  request(method, url, body) {
     // Set url
-    let base_url = `https://${this.config.host}:${this.config.port}/${this.config.api_version}`;
-
-    // Append base url to path
-    data.url = base_url + data.url;
+    let data = { 
+      agentOptions: this.agentOptions,
+      json: true,
+      method,
+      url: `https://${this.config.base_url}${url}`,
+    };
+    
+    if(typeof(body) === 'object') {
+      data.body = body;
+    }
 
     // Actually make the request
     return request(data);
   }
+
+  operation(url) {
+    return new Operation(this);
+  }
+
+  async_operation(url) {
+    return new AsyncOperation(this);
+  }
   
+  /*
   async run_operation(config) {
     // Raw request
-    let body = await this.raw_request(config);
+    let body = await this.request(config);
     // Handle response
     if(body.type == 'error') {
       throw new Error(body.error);
@@ -147,7 +143,7 @@ export default class Client {
   // TODO - Move this to operation class
   async get_exit_code(operation, retries = 0, timeout = 500) {
     // After getting output from sockets we need to get the statuscode from the operation
-    let response = await this.run_operation({ method: 'GET', url: '/operations/' + operation.id })
+    let response = await this.run_operation({ url: '/operations/' + operation.id })
 
     // This logic is triggered on closing of operation control socket. It could happen though that socket closes,
     // but the operation in lxd is still marked as running.. In that case debounce
@@ -166,7 +162,7 @@ export default class Client {
   }
 
   // TODO - Move this to operation class
-  async finalize_websocket_operation(sockets, operation, config) {
+  async finalize_websocket_operation(sockets, operation) {
     var result = {
       output: [],
     };
@@ -222,7 +218,6 @@ export default class Client {
     return output;
   }
 
-  // TODO - Move this to operation class
   async process_websocket_operation(operation, config) {
     // Setup control socket first by reversing fds, do this because process will start after all fds except control are connected
     // If we connect control last, it's possible to miss the close event
@@ -231,7 +226,7 @@ export default class Client {
     // "map" the keys of this object to new object of sockets
     let sockets = await map_series(file_descriptors, key => {
       // Generate url from metadata
-      var url = this.config.websocket + '/operations/' + operation.id + '/websocket?secret=' + operation.metadata.fds[key];
+      var url = `wss://${this.config.base_url}/operations/${operation.id}/websocket?secret=${operation.metadata.fds[key]}`;
 
       // Create socket listening to url
       let socket = new WebSocket(url, {
@@ -257,6 +252,7 @@ export default class Client {
       return this.finalize_websocket_operation(sockets, operation, config);
     }
   }
+  */
 
   get_pool(name) {
     return new Pool(this, name);
@@ -267,7 +263,7 @@ export default class Client {
   }
 
   async list() {
-    let list = await this.run_operation({ method: 'GET', url: '/containers'});
+    let list = await this.operation().get('/containers');
     return list.map(url => path.basename(url));
   }
 }
