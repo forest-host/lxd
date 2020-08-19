@@ -136,10 +136,10 @@ export default class Container {
     let operation = this.client.async_operation();
 
     if(typeof(options.interactive) === 'boolean' && options.interactive) {
-      operation.interactive();
+      operation.make_interactive();
     }
     if(typeof(options.timeout) === 'number') {
-      operation.timeout(options.timeout);
+      operation.timeout_after(options.timeout);
     }
 
     return operation.post(`${this.url()}/exec`, body);
@@ -147,7 +147,7 @@ export default class Container {
 
   upload_string(string, path) {
     // TODO - Body used to be returned without content-type:json, check if this is still the case
-    return this.client.request({
+    return this.client.raw_request({
       method: 'POST', 
       url: `${this.url()}/files`,
       qs: { path: path },
@@ -161,7 +161,7 @@ export default class Container {
   }
 
   upload(stream, path) {
-    let request = this.client.request({
+    let request = this.client.raw_request({
       method: 'POST', 
       url: `${this.url()}/files`,
       qs: { path: path },
@@ -183,7 +183,7 @@ export default class Container {
   }
 
   download(path) {
-    return this.client.request({ url: `${this.url()}/files`, qs: { path: path } })
+    return this.client.raw_request({ method: 'GET', url: `${this.url()}/files`, qs: { path: path } })
   }
 }
 

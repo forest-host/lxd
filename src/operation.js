@@ -25,7 +25,7 @@ export class AsyncOperation extends Operation {
     this.timeout = 0;
   }
 
-  interactive() {
+  make_interactive() {
     this.interactive = true;
   }
 
@@ -86,14 +86,7 @@ export class AsyncOperation extends Operation {
   async process_websocket_operation(metadata) {
     // Setup control socket first by reversing fds, do this because process will start after all fds except control are connected
     // If we connect control last, it's possible to miss the close event
-    let file_descriptors;
-    try {
-      file_descriptors = Object.keys(metadata.metadata.fds).reverse();
-    } catch(err) {
-      console.log(metadata);
-      //console.log(file_descriptors);
-      throw err;
-    }
+    let file_descriptors = Object.keys(metadata.metadata.fds).reverse();
 
     // TODO - Why do we mapseries? (probably to first open control socket before others but i'm not sure)
     // "map" the keys of this object to new object of sockets
@@ -174,7 +167,7 @@ export class AsyncOperation extends Operation {
 
   async get_exit_code(metadata, retries = 0, timeout = 500) {
     // After getting output from sockets we need to get the statuscode from the operation
-    let response = await super.get('/operations/' + metadata.id);
+    let response = await super.request('GET', `/operations/${metadata.id}`);
 
     // This logic is triggered on closing of operation control socket. It could happen though that socket closes,
     // but the operation in lxd is still marked as running.. In that case debounce
