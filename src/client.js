@@ -33,14 +33,6 @@ export default class Client {
     };
   }
 
-  // TODO - Remove this, add functions to container to add vars, to add mounts & to add volumes
-  get_container_config(variables, mounts = [], volumes = []) {
-    return {
-      config: get_variables_as_config(variables),
-      devices: Object.assign(get_mounts_as_devices(mounts || []), get_volumes_as_devices(volumes || [])),
-    };
-  }
-
   open_socket(url) {
     // Get events listener 
     return new WebSocket(`wss://${this.config.base_url}${url}`, this.agentOptions);
@@ -67,10 +59,6 @@ export default class Client {
 
     if(typeof(qs) === 'object') {
       config.qs = qs;
-    }
-
-    if(config.hasOwnProperty('qs')) {
-      console.log(require('util').inspect(config, false, null));
     }
 
     // Actually make the request

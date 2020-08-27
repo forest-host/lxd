@@ -1,6 +1,7 @@
 
 import extend from 'extend';
 import { Readable as readable } from 'stream';
+import Volume from './volume';
 
 export default class Container {
   constructor(client, name) {
@@ -19,11 +20,11 @@ export default class Container {
     return this;
   }
 
+  // Chainable creation methods
   on_target(host) {
     this.target = host;
     return this;
   }
-
   from_image(os, release) {
     this.image = { os, release, architecture: 'amd64' };
     return this;
@@ -103,16 +104,86 @@ export default class Container {
     return this;
   }
 
+  // Low level update for container config
   async patch(body) {
     let response = await this.client.operation().patch(this.url(), body);
     return this.load();
   }
-
   async put(body) {
     let response = await this.client.async_operation().put(this.url(), body);
     return this.load();
   }
 
+  // Make sure we loaded config from LXD backend, or error
+  should_be_loaded() {
+    if( ! this.hasOwnProperty('config')) {
+      throw new Error('Load container config before updating container');
+    }
+    return this;
+  }
+
+  // Set environment variable in container
+  // TODO - Validate uppercase key?
+  set_environment_variable(key, value) {
+    this.should_be_loaded();
+
+    if( ! this.config.hasOwnProperty('config')) {
+      this.config.config = {};
+    }
+
+    this.config.config[`environment.${key}`] = value;
+
+    return this;
+  }
+
+  // Mount LXD volume or host path in this container at container path
+  // TODO - Check if container_path is unique?
+  mount(volume_or_host_path, container_path, device_name) {
+    this.should_be_loaded();
+
+    if( ! this.config.hasOwnProperty('devices')) {
+      this.config.devices = {};
+    }
+
+    this.config.devices[device_name] = {
+      path: container_path,
+      type: 'disk',
+    };
+
+    if(volume_or_host_path instanceof Volume) {
+      this.config.devices[device_name].source = volume_or_host_path.name;
+      this.config.devices[device_name].pool = volume_or_host_path.pool.name;
+    } else if(typeof(volume_or_host_path) === 'string') {
+      this.config.devices[device_name].source = volume_or_host_path;
+    } else {
+      throw new Error('Only volumes or host paths can be mounted')
+    }
+
+    // Chainable
+    return this;
+  }
+
+  // Unmount device
+  unmount(device_name) {
+    this.should_be_loaded();
+
+    if( ! this.config.devices.hasOwnProperty(device_name)) {
+      throw new Error('Device not found');
+    }
+
+    delete this.config.devices[device_name];
+
+    return this;
+  }
+
+  // Update containers config in LXD with current local container config
+  // Its possible to update local config with "mount" & "set_environment_variable" functions
+  update() {
+    this.should_be_loaded();
+    return this.put(this.config);
+  }
+
+  // Execute command in container
   exec(cmd, args, options) {
     // It is possible to not pass option so check last argument to see if it is a options object
     var last = arguments[arguments.length - 1];
@@ -146,6 +217,7 @@ export default class Container {
     return operation.post(`${this.url()}/exec`, body);
   }
 
+  // Upload string to file in container
   upload_string(string, path) {
     // TODO - Body used to be returned without content-type:json, check if this is still the case
     return this.client.raw_request({
@@ -161,6 +233,7 @@ export default class Container {
     });
   }
 
+  // Upload readable stream to container
   upload(stream, path) {
     let request = this.client.raw_request({
       method: 'POST', 

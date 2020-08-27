@@ -272,6 +272,79 @@ describe('Container', () => {
     })
   });
 
+  describe('patch()', () => {
+    before(() => container.patch({ config: { 'environment.CONTAINER_NAME': config.container.name } }));
+
+    it('Updates container config', () => {
+      container.config.config.should.have.property('environment.CONTAINER_NAME').that.equals(config.container.name);
+    });
+  });
+
+  describe('should_be_loaded()', () => {
+    before(() => {
+      delete container.config;
+    });
+    after(() => container.load());
+
+    it('Errors when config is not loaded', () => {
+      chai.assert.throws(() => container.mount(volume, '/test', 'test'));
+    });
+  })
+
+  describe('mount()', () => {
+    let volume = pool.get_volume(config.volume);
+
+    it('Adds LXD volume config to local container config', () => {
+      container.mount(volume, '/test_volume', 'volume');
+
+      container.config.devices.should.have.property('volume').that.is.a('Object');
+      container.config.devices['volume'].should.have.property('pool').that.equals(volume.pool.name);
+      container.config.devices['volume'].should.have.property('source').that.equals(volume.name);
+    });
+
+    it('Adds host mount to local container config', () => {
+      container.mount('/test', '/test_path', 'path');
+
+      container.config.devices.should.have.property('path').that.is.a('Object');
+      container.config.devices['path'].should.have.property('path').that.equals('/test_path')
+      container.config.devices['path'].should.have.property('source').that.equals('/test');
+    });
+  })
+
+  describe('set_environment_variable()', () => {
+    it('Adds environment variable to local config', () => {
+      container.set_environment_variable('VARIABLE_NAME', 'value');
+
+      container.config.config.should.have.property('environment.VARIABLE_NAME').that.equals('value');
+    });
+  })
+
+  describe('update()', () => {
+    let volume = pool.get_volume(config.volume);
+
+    // Reset container config
+    before(async () => {
+      delete container.config;
+      await container.load();
+      await volume.create();
+
+      return container
+        .mount(volume, '/test', 'test')
+        .set_environment_variable('VARNAME', 'val')
+        .update()
+    })
+
+    after(async () => {
+      await container.unmount('test').update();
+      return volume.destroy();
+    });
+
+    it('Updates config of container in LXD with local config', () => {
+      container.config.config.should.have.property('environment.VARNAME').that.equals('val');
+      container.config.devices.should.have.property('test').that.has.property('source').that.equals(volume.name);
+    });
+  })
+
   describe('exec()', () => {
     it('Executes command in container', async () => {
       let { output } = await container.exec('hostname')
@@ -340,14 +413,6 @@ describe('Container', () => {
     it('Correctly handles multiline variables', async () => {
       await container.patch({ config: { 'environment.PRIVATE_KEY': multiline_string }});
       container.config.config['environment.PRIVATE_KEY'].should.equal(multiline_string);
-    });
-  });
-
-  describe('patch()', () => {
-    before(() => container.patch({ config: { 'environment.CONTAINER_NAME': config.container.name } }));
-
-    it('Updates container config', () => {
-      container.config.config.should.have.property('environment.CONTAINER_NAME').that.equals(config.container.name);
     });
   });
 
