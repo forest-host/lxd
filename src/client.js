@@ -46,23 +46,17 @@ export default class Client {
 
   request(method, url, body, qs) {
     // Set url
-    let config = { 
-      agentOptions: this.agentOptions,
-      json: true,
-      method,
-      url: `https://${this.config.base_url}${url}`,
-    };
+    let config = { json: true, method, url, };
     
     if(typeof(body) === 'object') {
       config.body = body;
     }
-
     if(typeof(qs) === 'object') {
       config.qs = qs;
     }
 
     // Actually make the request
-    return request(config);
+    return this.raw_request(config);
   }
 
   operation(url) {
