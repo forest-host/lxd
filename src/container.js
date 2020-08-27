@@ -136,6 +136,20 @@ export default class Container {
     return this;
   }
 
+  // Delete all environment vars from container
+  unset_environment_variables() {
+    this.should_be_loaded();
+
+    // Delete all keys starting with environment
+    Object.keys(this.config.config)
+      .filter(key => key.substr(12) == 'environment.')
+      .forEach(key => {
+        delete this.config.config[key];
+      });
+
+    return this;
+  }
+
   // Mount LXD volume or host path in this container at container path
   // TODO - Check if container_path is unique?
   mount(volume_or_host_path, container_path, device_name) {
