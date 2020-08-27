@@ -42,13 +42,14 @@ export default class Container {
       body.source = { type: 'image', properties: this.image };
     }
 
-    // TODO 
-    //if(typeof this.target !== undefined) {
-      //config.qs = { target: this.target };
-    //}
+    let args = ['/instances', body];
+
+    if(typeof this.target !== 'undefined') {
+      args.push({ target: this.target });
+    }
 
     // Create container
-    await this.client.async_operation().post('/instances', body)
+    await this.client.async_operation().post(...args)
     return this.load();
   }
 
@@ -150,7 +151,7 @@ export default class Container {
     return this.client.raw_request({
       method: 'POST', 
       url: `${this.url()}/files`,
-      qs: { path: path },
+      qs: { path },
       json: false,
       headers: {
         'X-LXD-type': 'file',
@@ -164,7 +165,7 @@ export default class Container {
     let request = this.client.raw_request({
       method: 'POST', 
       url: `${this.url()}/files`,
-      qs: { path: path },
+      qs: { path },
       json: false,
       headers: {
         'X-LXD-type': 'file',

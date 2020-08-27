@@ -52,7 +52,7 @@ export default class Client {
     return request(config);
   }
 
-  request(method, url, body) {
+  request(method, url, body, qs) {
     // Set url
     let config = { 
       agentOptions: this.agentOptions,
@@ -63,6 +63,14 @@ export default class Client {
     
     if(typeof(body) === 'object') {
       config.body = body;
+    }
+
+    if(typeof(qs) === 'object') {
+      config.qs = qs;
+    }
+
+    if(config.hasOwnProperty('qs')) {
+      console.log(require('util').inspect(config, false, null));
     }
 
     // Actually make the request

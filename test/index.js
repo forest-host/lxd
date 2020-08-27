@@ -9,6 +9,9 @@ chai.use(chaiAsPromised);
 import { LXD, Container, Volume, Snapshot } from '../src';
 import { map_series } from '../src/util';
 
+// TODO - Split up tests to seperate files
+// TODO - Tests for operation? (though it is covered by almost everything)
+
 var multiline_string = `-----BEGIN RSA PRIVATE KEY-----
 MIIEpAIBAAKCAQEAsNoVoxT3QtvNXgXFMRXQTB/eCbrgMfYQ06nbMt2hyuVR7Ks3
 Q3lkg5F4q4b2OCyA/a9KHQZ5XLXOoML/6lezLvNTOPLLRUXlVeyPeKVS/5CYwiPc

@@ -6,16 +6,16 @@ export class Operation {
     this.client = client;
   }
 
-  async request(method, url, body) {
+  async request(method, url, body, qs) {
     let response = await this.client.request(...arguments);
     return response.metadata;
   }
 
-  get(url) { return this.request('GET', ...arguments); }
-  put(url, body) { return this.request('PUT', ...arguments); }
-  patch(url, body) { return this.request('PATCH', ...arguments); }
-  post(url, body) { return this.request('POST', ...arguments); }
-  delete(url) { return this.request('DELETE', ...arguments); }
+  get(url, qs) { return this.request('GET', url, undefined, qs); }
+  put(url, body, qs) { return this.request('PUT', ...arguments); }
+  patch(url, body, qs) { return this.request('PATCH', ...arguments); }
+  post(url, body, qs) { return this.request('POST', ...arguments); }
+  delete(url, qs) { return this.request('DELETE', url, undefined, qs); }
 }
 
 export class AsyncOperation extends Operation {
