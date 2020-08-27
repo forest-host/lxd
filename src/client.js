@@ -33,17 +33,19 @@ export default class Client {
     };
   }
 
+  // Get global LXD events listener 
   open_socket(url) {
-    // Get events listener 
     return new WebSocket(`wss://${this.config.base_url}${url}`, this.agentOptions);
   }
 
+  // Raw request function that will pass on config to request lib
   raw_request(config) {
     config.url = `https://${this.config.base_url}${config.url}`;
     config.agentOptions = this.agentOptions;
     return request(config);
   }
 
+  // Simple request with body & query string
   request(method, url, body, qs) {
     // Set url
     let config = { json: true, method, url, };
@@ -59,22 +61,27 @@ export default class Client {
     return this.raw_request(config);
   }
 
+  // Run sync operation
   operation(url) {
     return new Operation(this);
   }
 
+  // Run async operation
   async_operation(url) {
     return new AsyncOperation(this);
   }
   
+  // Get LXD storage pool representation
   get_pool(name) {
     return new Pool(this, name);
   }
 
+  // Get LXD container representation
   get_container(name) {
     return new Container(this, name);
   }
 
+  // Get list of containers
   async list() {
     let list = await this.operation().get('/containers');
     return list.map(url => path.basename(url));

@@ -235,7 +235,7 @@ export default class Container {
   upload_string(string, path) {
     // TODO - Body used to be returned without content-type:json, check if this is still the case
     return this.client.raw_request({
-      method: 'POST', 
+      method: 'POST',
       url: `${this.url()}/files`,
       qs: { path },
       json: false,
@@ -250,7 +250,7 @@ export default class Container {
   // Upload readable stream to container
   upload(stream, path) {
     let request = this.client.raw_request({
-      method: 'POST', 
+      method: 'POST',
       url: `${this.url()}/files`,
       qs: { path },
       json: false,

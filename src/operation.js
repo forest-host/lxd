@@ -6,11 +6,13 @@ export class Operation {
     this.client = client;
   }
 
+  // Request & return operation metadata
   async request(method, url, body, qs) {
     let response = await this.client.request(...arguments);
     return response.metadata;
   }
 
+  // Simple HTTP method functions
   get(url, qs) { return this.request('GET', url, undefined, qs); }
   put(url, body, qs) { return this.request('PUT', ...arguments); }
   patch(url, body, qs) { return this.request('PATCH', ...arguments); }
@@ -25,14 +27,17 @@ export class AsyncOperation extends Operation {
     this.timeout = 0;
   }
 
+  // Make this operation an interactive operation (used to return websockets directly)
   make_interactive() {
     this.interactive = true;
   }
 
+  // Timeout this async operation (used to cancel exec operations)
   timeout_after(millis) {
     this.timeout = millis;
   }
 
+  // Override operation request method to wait for operation updates over global events socket
   async request(method, url, body) {
     // Wait for socket to open before executing operation
     let socket = await wait_for_socket_open(this.client.open_socket('/events?type=operation'));
@@ -51,6 +56,7 @@ export class AsyncOperation extends Operation {
     }
   }
 
+  // Async operations can have multiple classes that require different handling
   async process_operation(metadata, socket) {
     switch (metadata.class) {
       case 'task':
@@ -64,6 +70,7 @@ export class AsyncOperation extends Operation {
     }
   }
 
+  // Task operations are simple async operations
   process_task_operation(metadata, socket) {
     return new Promise((resolve, reject) => {
       socket.on('message', message => {
@@ -83,6 +90,8 @@ export class AsyncOperation extends Operation {
     });
   }
 
+  // Websocket operations are used for container command exec logic, they can return data over sockets
+  // Open up sockets & finalize
   async process_websocket_operation(metadata) {
     // Setup control socket first by reversing fds, do this because process will start after all fds except control are connected
     // If we connect control last, it's possible to miss the close event
@@ -109,6 +118,7 @@ export class AsyncOperation extends Operation {
     }
   }
 
+  // Finalize websocket operation, collecting data from sockets or returning them directly based on "interactive" bool
   async finalize_websocket_operation(sockets, metadata) {
     var result = {
       output: [],
@@ -147,7 +157,7 @@ export class AsyncOperation extends Operation {
         resolve(result);
       });
 
-      // Control socket closes when done executing
+      // Control socket closes when done executing, we will have to close the other sockets manually after control closes
       sockets.control.on('close', () => {
         // Clear timeout as we can not send control signals through closed socket
         if(this.timeout > 0) {
@@ -165,6 +175,7 @@ export class AsyncOperation extends Operation {
     return output;
   }
 
+  // Get exit code of exec command operation
   async get_exit_code(metadata, retries = 0, timeout = 500) {
     // After getting output from sockets we need to get the statuscode from the operation
     let response = await super.request('GET', `/operations/${metadata.id}`);
