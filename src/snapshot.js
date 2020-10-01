@@ -23,8 +23,14 @@ export default class Snapshot {
   }
 
   async destroy() {
-    await this.volume.pool.client.operation().delete(this.url());
+    await this.volume.pool.client.async_operation().request('DELETE', this.url());
     delete this.config;
+
+    return this;
+  }
+
+  async restore() {
+    await this.volume.pool.client.operation().put(this.volume.url(), { restore: this.name });
 
     return this;
   }

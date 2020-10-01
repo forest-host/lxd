@@ -55,7 +55,7 @@ export default class Container {
   }
 
   // (stop, start, restart, freeze or unfreeze)
-  async state(action, force = false, timeout = 60, stateful = false) {
+  async set_state(action, force = false, timeout = 60, stateful = false) {
     // create container request
     let response = await this.client.async_operation()
       .put(`${this.url()}/state`, { action, timeout, force, stateful })
@@ -66,6 +66,12 @@ export default class Container {
       return this;
     }
   }
+
+  start() { return this.set_state('start', ...arguments); }
+  stop() { return this.set_state('stop', ...arguments); }
+  restart() { return this.set_state('restart', ...arguments); }
+  freeze() { return this.set_state('freeze', ...arguments); }
+  unfreeze() { return this.set_state('unfreeze', ...arguments); }
 
   get_state() {
     return this.client.operation().get(`${this.url()}/state`);
@@ -123,6 +129,7 @@ export default class Container {
   }
 
   // Set environment variable in container
+  // @important Call update() on this container to update LXD container
   // TODO - Validate uppercase key?
   set_environment_variable(key, value) {
     this.should_be_loaded();
@@ -137,6 +144,7 @@ export default class Container {
   }
 
   // Delete all environment vars from container
+  // @important Call update() on this container to update LXD container
   unset_environment_variables() {
     this.should_be_loaded();
 
@@ -151,6 +159,7 @@ export default class Container {
   }
 
   // Mount LXD volume or host path in this container at container path
+  // @important Call update() on this container to update LXD container
   // TODO - Check if container_path is unique?
   mount(volume_or_host_path, container_path, device_name) {
     this.should_be_loaded();
@@ -178,6 +187,7 @@ export default class Container {
   }
 
   // Unmount device
+  // @important Call update() on this container to update LXD container
   unmount(device_name) {
     this.should_be_loaded();
 

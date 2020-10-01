@@ -66,11 +66,25 @@ var config = {
   snapshot: 'snapshot',
 };
 
-var lxd = new LXD(config.client);
-var container = lxd.get_container(config.container.name);
-var pool = lxd.get_pool(config.pool);
+const lxd = new LXD(config.client);
+const pool = lxd.get_pool(config.pool);
+
+const clean_up_failed_tests = async function() {
+  let container_list = await lxd.list();
+  if(container_list.indexOf(config.container.name) !== -1) {
+    await lxd.get_container(config.container.name).stop();
+    await lxd.get_container(config.container.name).destroy();
+  }
+
+  let volume_list = await pool.list();
+  if(volume_list.indexOf(config.volume) !== -1) {
+    await pool.get_volume(config.volume).destroy();
+  }
+}
 
 describe('Pool', () => {
+  before(function() { this.timeout(30000); return clean_up_failed_tests() });
+
   describe('list()', () => {
     it('Lists custom storage volumes in pool', () => {
       return pool.list()
@@ -88,16 +102,10 @@ describe('Pool', () => {
 });
 
 describe('Volume', () => {
-  // Clean up failed previous runs
-  before(async () => {
-    let list = await pool.list();
-
-    if(list.indexOf(config.volume) !== -1) {
-      return pool.get_volume(config.volume).destroy();
-    }
-  });
-
   let volume = pool.get_volume(config.volume);
+
+  // Clean up failed previous runs
+  //before(function() { this.timeout(30000); return clean_up_failed_tests(); });
 
   describe('create()', () => {
     before(() => volume.create())
@@ -144,11 +152,29 @@ describe('Volume', () => {
 })
 
 describe('Snapshot', () => {
+  let container = lxd.get_container(config.container.name).from_image(config.container.os, config.container.release);
   let volume = pool.get_volume(config.volume);
   let snapshot = volume.get_snapshot(config.snapshot);
 
-  before(() => volume.create());
-  after(() => volume.destroy());
+  // Do all this to test snapshot restore, 
+  // seems like a lot of work to check if restore is working...
+  // We do this here so we can use the snapshot create test to create snapshot and save time..
+  before(async function() {
+    this.timeout(30000);
+    await clean_up_failed_tests();
+
+    await Promise.all([volume.create(), container.create()]);
+    await container.mount(volume, '/test', 'test').update();
+    await container.start();
+    await container.upload_string('This should still be there!', '/test/keep.txt');
+  });
+  after(async function() {
+    this.timeout(30000);
+
+    await container.stop();
+    await container.destroy();
+    await volume.destroy();
+  });
 
   describe('create()', () => {
     before(() => snapshot.create());
@@ -173,6 +199,24 @@ describe('Snapshot', () => {
     });
   });
 
+  // TODO - Is there a simple way to test this without testing the actual storage?
+  // There does not seem a way to get snapshot restores from LXD
+  // So for now, use a container & mounted volume to test this logic
+  // Also, this depends on the snapshot create test above
+  describe('restore()', () => {
+    let file_name = '/test/rollback.txt';
+    before(() => container.upload_string('this should be gone!', file_name));
+
+    it('restores volume to snapshot', async function() {
+      this.timeout(30000);
+      await container.stop();
+      await snapshot.restore();
+      await container.start();
+
+      container.download(file_name).should.be.rejected;
+    })
+  })
+
   describe('destroy()', () => {
     before(() => snapshot.destroy());
 
@@ -187,15 +231,10 @@ describe('Snapshot', () => {
 })
 
 describe('LXD Client', () => {
+  let container = lxd.get_container(config.container.name);
+
   // Clean up previously failed tests
-  before(async function() {
-    this.timeout(30000);
-    let list = await lxd.list();
-    if(list.indexOf(config.container.name) !== -1) {
-      await lxd.get_container(config.container.name).state('stop');
-      await lxd.get_container(config.container.name).destroy();
-    }
-  })
+  //before(function() { this.timeout(30000); return clean_up_failed_tests(); });
 
   describe('list()', () => {
     it('Responds with a array', async () => {
@@ -212,10 +251,11 @@ describe('LXD Client', () => {
 });
 
 describe('Container', () => {
-  describe('from_image()', () => {
-    before(() => container.from_image(config.container.os, config.container.release));
+  let container = lxd.get_container(config.container.name);
 
+  describe('from_image()', () => {
     it('Sets container image', () => {
+      container.from_image(config.container.os, config.container.release);
       container.image.should.not.be.undefined;
     });
   });
@@ -236,9 +276,9 @@ describe('Container', () => {
     })
   })
 
-  describe('state()', () => {
+  describe('set_state()', () => {
     it('Changes container state', async () => {
-      await container.state('start');
+      await container.set_state('start');
       let state = await container.get_state();
       state.should.have.property('status').that.equals('Running');
     })
@@ -443,11 +483,10 @@ describe('Container', () => {
 
     it('Deletes stopped container', async function() {
       this.timeout(30000);
-      await container.state('stop');
+      await container.stop();
       await container.destroy()
       let list = await lxd.list();
       list.should.be.a('Array').that.not.contains(config.container.name);
     });
   });
 });
-

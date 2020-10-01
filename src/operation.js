@@ -7,8 +7,11 @@ export class Operation {
   }
 
   // Request & return operation metadata
-  async request(method, url, body, qs) {
+  async request() {
     let response = await this.client.request(...arguments);
+    // TODO - Error handling?
+    //console.log(response);
+
     return response.metadata;
   }
 
@@ -38,7 +41,7 @@ export class AsyncOperation extends Operation {
   }
 
   // Override operation request method to wait for operation updates over global events socket
-  async request(method, url, body) {
+  async request() {
     // Wait for socket to open before executing operation
     let socket = await wait_for_socket_open(this.client.open_socket('/events?type=operation'));
 
@@ -66,6 +69,7 @@ export class AsyncOperation extends Operation {
       case 'token':
         return Promise.resolve(metadata);
       default: 
+        console.log(metadata);
         return Promise.reject(new Error('API returned unknown operation class'));
     }
   }
