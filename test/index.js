@@ -250,7 +250,7 @@ describe('LXD Client', () => {
   let container = lxd.get_container(config.container.name);
 
   // Clean up previously failed tests
-  before(function() { this.timeout(30000); return clean_up_failed_tests(); });
+  //before(function() { this.timeout(30000); return clean_up_failed_tests(); });
 
   describe('list()', () => {
     it('Responds with a array', async () => {
@@ -286,12 +286,13 @@ describe('Container', () => {
 
   describe('create()', () => {
     before(() => {
-      // TODO TODO TODO - test for mounted volume
       return container
         .mount(volume, '/test', 'test')
         .set_environment_variable('VARNAME', 'val')
         .create();
     })
+
+    after(() => container.unmount('test').unset_environment_variable('VARNAME').update());
 
     it('Creates container', () => {
       lxd.list().should.eventually.contain(config.container.name);
@@ -299,6 +300,8 @@ describe('Container', () => {
 
     it('Loads config', () => {
       container.name().should.equal(config.container.name);
+      container.config.config.should.have.property('environment.VARNAME').that.equals('val');
+      container.config.devices.should.have.property('test').that.has.property('source').that.equals(volume.name());
       container.is_loaded.should.equal(true);
     });
   })

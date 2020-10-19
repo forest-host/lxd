@@ -173,6 +173,9 @@ export default class Container {
   set_environment_variable(key, value) {
     return this.set_config(`environment.${key}`, value);
   }
+  unset_environment_variable(key) {
+    return this.unset_config(`environment.${key}`);
+  }
 
   // Mount LXD volume or host path in this container at container path
   // @important Call update() on this container to update LXD container
