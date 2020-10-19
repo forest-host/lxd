@@ -1,6 +1,7 @@
 
 import { map_series, wait_for_socket_open } from './util';
 
+// TODO - We should be able to determine async or sync from response of LXD API, why don't we do this?
 export class Operation {
   constructor(client) {
     this.client = client;
@@ -23,6 +24,7 @@ export class Operation {
   delete(url, qs) { return this.request('DELETE', url, undefined, qs); }
 }
 
+// TODO - We should be able to determine async or sync from response of LXD API, why don't we do this?
 export class AsyncOperation extends Operation {
   constructor(client, url) {
     super(client, url);
