@@ -5,11 +5,15 @@ import Volume from './volume';
 class Pool {
   constructor(client, name) {
     this.client = client;
-    this.name = name;
+    this.config = { name, };
+  }
+
+  name() {
+    return this.config.name;
   }
 
   url() {
-    return '/storage-pools/' + this.name + '/volumes/custom';
+    return '/storage-pools/' + this.name() + '/volumes/custom';
   }
 
   async list() {

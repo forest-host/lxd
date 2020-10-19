@@ -6,63 +6,55 @@ import Snapshot from './snapshot';
 export default class Volume {
   constructor(pool, name) {
     this.pool = pool;
-    this.name = name;
+    return this.set_default_config(name);
+  }
+
+  set_default_config(name) {
+    this.config = { name, };
+    this.is_loaded = false;
+    return this;
+  }
+
+  name() {
+    return this.config.name;
   }
 
   url() {
-    return `${this.pool.url()}/${this.name}`
+    return `${this.pool.url()}/${this.name()}`
   }
 
   async load() {
     let response = await this.pool.client.operation().get(this.url());
     this.config = response;
+    this.is_loaded = true;
 
     return this;
   }
 
+  unload() {
+    return this.set_default_config(this.config.name);
+  }
+
   async create() {
-    await this.pool.client.operation().post(this.pool.url(), { name: this.name });
+    await this.pool.client.operation().post(this.pool.url(), this.config);
     return this.load();
   }
 
   async destroy() {
     await this.pool.client.operation().delete(this.url());
-    delete this.config;
-
-    return this;
+    return this.unload();
   }
 
-  async clone_from(volume) {
-    /*
-      // Volume config
-      var config = {
-        config: {},
-        name,
-        //type: "custom",
-      };
+  clone_from(volume, volume_only = true) {
+    this.config.source = {
+      name: volume.name(),
+      pool: volume.pool.name(),
+      type: 'copy',
+      // We generally don't want to copy snapshots
+      volume_only,
+    };
 
-      // Add source when cloning from other volume
-      if(typeof(clone_from) != 'undefined') {
-        if(typeof(clone_from) == 'string') {
-          config.source = {
-            pool: this.name,
-            name: clone_from,
-            type: "copy",
-            volume_only: true,
-          }
-        } else if (typeof(clone_from) == 'object' && clone_from.hasOwnProperty('name') && clone_from.hasOwnProperty('storage_pool')) {
-          config.source = {
-            pool: clone_from.storage_pool,
-            name: clone_from.name,
-            type: "copy",
-            volume_only: true,
-          }
-        }
-      }
-
-      return this.client.run_operation({ method: 'POST', url: this.url + '/custom', body: config });
-    */
-  
+    return this;
   }
 
   get_snapshot(name) {

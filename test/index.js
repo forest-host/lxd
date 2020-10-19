@@ -102,6 +102,7 @@ describe('Pool', () => {
 });
 
 describe('Volume', () => {
+  let container = lxd.get_container(config.container.name).from_image(config.container.os, config.container.release);
   let volume = pool.get_volume(config.volume);
 
   // Clean up failed previous runs
@@ -116,18 +117,32 @@ describe('Volume', () => {
       list.should.contain(config.volume);
     })
     it('Loads volume config', () => {
-      volume.config.name.should.equal(config.volume);
+      volume.name().should.equal(config.volume);
+      volume.is_loaded.should.equal(true);
+    })
+  })
+
+  describe('clone_from()', () => {
+    let clone = pool.get_volume('clone').clone_from(volume);
+
+    before(async () => {
+      await container.create()
+    })
+
+    after(async () => {
+      await container.destroy();
     })
   })
 
   describe('load()', () => {
     before(() => {
-      delete volume.config;
+      volume.unload();
       return volume.load();
     })
 
     it('Loads volume config', () => {
-      volume.config.name.should.equal(config.volume);
+      volume.name().should.equal(config.volume);
+      volume.is_loaded.should.equal(true);
     })
   })
 
@@ -138,8 +153,8 @@ describe('Volume', () => {
       let list = await pool.list();
       list.should.not.contain(config.volume);
     });
-    it('Unsets config', () => {
-      volume.should.not.have.property('config');
+    it('Unloads config', () => {
+      volume.is_loaded.should.equal(false);
     })
   })
 
@@ -190,12 +205,13 @@ describe('Snapshot', () => {
 
   describe('load()', () => {
     before(() => {
-      delete snapshot.config;
+      snapshot.unload();
       return snapshot.load();
     });
 
     it('Loads snapshot config', () => {
       snapshot.config.name.should.equal(config.snapshot);
+      snapshot.is_loaded.should.equal(true);
     });
   });
 
@@ -224,8 +240,8 @@ describe('Snapshot', () => {
       let list = await volume.list_snapshots();
       list.should.not.contain(config.snapshot);
     });
-    it('Unsets snapshot config', () => {
-      snapshot.should.not.have.property('config');
+    it('Unloads snapshot config', () => {
+      snapshot.is_loaded.should.equal(false);
     });
   });
 })
@@ -234,7 +250,7 @@ describe('LXD Client', () => {
   let container = lxd.get_container(config.container.name);
 
   // Clean up previously failed tests
-  //before(function() { this.timeout(30000); return clean_up_failed_tests(); });
+  before(function() { this.timeout(30000); return clean_up_failed_tests(); });
 
   describe('list()', () => {
     it('Responds with a array', async () => {
@@ -252,11 +268,15 @@ describe('LXD Client', () => {
 
 describe('Container', () => {
   let container = lxd.get_container(config.container.name);
+  let volume = pool.get_volume(config.volume);
+
+  before(() => volume.create());
+  after(() => volume.destroy());
 
   describe('from_image()', () => {
     it('Sets container image', () => {
       container.from_image(config.container.os, config.container.release);
-      container.image.should.not.be.undefined;
+      container.config.source.should.not.be.undefined;
     });
   });
 
@@ -265,15 +285,22 @@ describe('Container', () => {
   })
 
   describe('create()', () => {
-    before(() => container.create())
+    before(() => {
+      // TODO TODO TODO - test for mounted volume
+      return container
+        .mount(volume, '/test', 'test')
+        .set_environment_variable('VARNAME', 'val')
+        .create();
+    })
 
     it('Creates container', () => {
       lxd.list().should.eventually.contain(config.container.name);
     });
 
     it('Loads config', () => {
-      container.config.should.have.property('name').that.equals(config.container.name);
-    })
+      container.name().should.equal(config.container.name);
+      container.is_loaded.should.equal(true);
+    });
   })
 
   describe('set_state()', () => {
@@ -303,7 +330,7 @@ describe('Container', () => {
 
   describe('load()', () => {
     before(() => {
-      delete container.config;
+      container.unload();
       return container.load();
     });
 
@@ -320,26 +347,13 @@ describe('Container', () => {
     });
   });
 
-  describe('should_be_loaded()', () => {
-    before(() => {
-      delete container.config;
-    });
-    after(() => container.load());
-
-    it('Errors when config is not loaded', () => {
-      chai.assert.throws(() => container.mount(volume, '/test', 'test'));
-    });
-  })
-
   describe('mount()', () => {
-    let volume = pool.get_volume(config.volume);
-
     it('Adds LXD volume config to local container config', () => {
       container.mount(volume, '/test_volume', 'volume');
 
       container.config.devices.should.have.property('volume').that.is.a('Object');
-      container.config.devices['volume'].should.have.property('pool').that.equals(volume.pool.name);
-      container.config.devices['volume'].should.have.property('source').that.equals(volume.name);
+      container.config.devices['volume'].should.have.property('pool').that.equals(volume.pool.name());
+      container.config.devices['volume'].should.have.property('source').that.equals(volume.name());
     });
 
     it('Adds host mount to local container config', () => {
@@ -360,13 +374,10 @@ describe('Container', () => {
   })
 
   describe('update()', () => {
-    let volume = pool.get_volume(config.volume);
-
-    // Reset container config
     before(async () => {
-      delete container.config;
+      // Reset container config to clear previous test stuff
+      container.unload();
       await container.load();
-      await volume.create();
 
       return container
         .mount(volume, '/test', 'test')
@@ -374,14 +385,13 @@ describe('Container', () => {
         .update()
     })
 
-    after(async () => {
-      await container.unmount('test').update();
-      return volume.destroy();
+    after(() => {
+      return container.unmount('test').update();
     });
 
     it('Updates config of container in LXD with local config', () => {
       container.config.config.should.have.property('environment.VARNAME').that.equals('val');
-      container.config.devices.should.have.property('test').that.has.property('source').that.equals(volume.name);
+      container.config.devices.should.have.property('test').that.has.property('source').that.equals(volume.name());
     });
   })
 

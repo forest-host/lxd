@@ -6,44 +6,75 @@ import Volume from './volume';
 export default class Container {
   constructor(client, name) {
     this.client = client;
-    this.name = name;
+    return this.set_default_config(name);
+  }
+
+  set_default_config(name) {
+    this.config = {
+      name,
+      architecture: 'x86_64',
+      profiles: ['default'],
+      ephemeral: false,
+      devices: {},
+      config: {},
+    };
+    this.is_loaded = false;
+
+    return this;
+  }
+
+  name() {
+    return this.config.name;
   }
 
   url() {
-    return `/instances/${this.name}`;
+    return `/instances/${this.name()}`;
   }
 
   async load() {
     let response = await this.client.operation().get(this.url());
     this.config = response;
+    this.is_loaded = true;
 
     return this;
   }
 
-  // Chainable creation methods
+  // Unload all config loaded from LXD API (used in tests mostly)
+  unload() {
+    return this.set_default_config(this.config.name);
+  }
+
+  // Set up container on target cluster host
+  // (Only thing that has to be passed in querystring, probably as it's only respected on setup of new container, and migrate works differently)
   on_target(host) {
     this.target = host;
     return this;
   }
+
+  // Setup new container from source image
   from_image(os, release) {
-    this.image = { os, release, architecture: 'amd64' };
+    this.config.source = {
+      type: 'image',
+      properties: { os, release, architecture: 'amd64' },
+    };
     return this;
   }
 
+  // Set lxd profiles container should use
+  set_profiles(profiles) {
+    this.config.profiles = profiles;
+    return this;
+  }
+
+  // Set this container to be ephemeral or not, (should it persist across host reboots?);
+  set_ephemeral(is_ephemeral) {
+    this.config.ephemeral = is_ephemeral;
+    return this;
+  }
+
+  // Create this container on LXD backend
   async create() {
-    let body = {
-      name: this.name,
-      architecture: 'x86_64',
-      // Defaults
-      profiles: typeof this.profiles !== undefined ? this.profiles : ['default'],
-      ephemeral: typeof this.ephemeral !== undefined ? this.ephemeral : false,
-    };
-
-    if(typeof this.image !== undefined) {
-      body.source = { type: 'image', properties: this.image };
-    }
-
-    let args = ['/instances', body];
+    let args = ['/instances', this.config];
 
     if(typeof this.target !== 'undefined') {
       args.push({ target: this.target });
@@ -86,6 +117,7 @@ export default class Container {
     });
   }
 
+  // Wait a bit for network address, DHCP servers can be sloooooooooow
   async wait_for_dhcp(retries = 0) {
     // Keep trying for 30 seconds
     if(retries >= 60) {
@@ -103,9 +135,10 @@ export default class Container {
     }
   }
 
+  // Remove this container from LXD backend
   async destroy() {
     await this.client.async_operation().delete(this.url());
-    delete this.config;
+    await this.unload();
 
     return this;
   }
@@ -120,62 +153,40 @@ export default class Container {
     return this.load();
   }
 
-  // Make sure we loaded config from LXD backend, or error
-  should_be_loaded() {
-    if( ! this.hasOwnProperty('config')) {
-      throw new Error('Load container config before updating container');
-    }
+  // TODO - Keep track of is_loaded somehow to know that we've changed local state
+  // Set LXD container config directive
+  set_config(key, value) {
+    this.config.config[key] = value;
+    return this;
+  }
+
+  // Unset LXD container config directive
+  unset_config(key) {
+    delete this.config.config[key];
     return this;
   }
 
   // Set environment variable in container
   // @important Call update() on this container to update LXD container
-  // TODO - Validate uppercase key?
+  // TODO - Validate uppercase key? It's only convention....
+  // TODO - Keep track of is_loaded somehow to know that we've changed local state
   set_environment_variable(key, value) {
-    this.should_be_loaded();
-
-    if( ! this.config.hasOwnProperty('config')) {
-      this.config.config = {};
-    }
-
-    this.config.config[`environment.${key}`] = value;
-
-    return this;
-  }
-
-  // Delete all environment vars from container
-  // @important Call update() on this container to update LXD container
-  unset_environment_variables() {
-    this.should_be_loaded();
-
-    // Delete all keys starting with environment
-    Object.keys(this.config.config)
-      .filter(key => key.substr(12) == 'environment.')
-      .forEach(key => {
-        delete this.config.config[key];
-      });
-
-    return this;
+    return this.set_config(`environment.${key}`, value);
   }
 
   // Mount LXD volume or host path in this container at container path
   // @important Call update() on this container to update LXD container
-  // TODO - Check if container_path is unique?
+  // TODO - Check if container_path is unique? LXD probably does this aswell, test for this?
+  // TODO - Keep track of is_loaded somehow to know that we've changed local state
   mount(volume_or_host_path, container_path, device_name) {
-    this.should_be_loaded();
-
-    if( ! this.config.hasOwnProperty('devices')) {
-      this.config.devices = {};
-    }
-
     this.config.devices[device_name] = {
       path: container_path,
       type: 'disk',
     };
 
     if(volume_or_host_path instanceof Volume) {
-      this.config.devices[device_name].source = volume_or_host_path.name;
-      this.config.devices[device_name].pool = volume_or_host_path.pool.name;
+      this.config.devices[device_name].source = volume_or_host_path.name();
+      this.config.devices[device_name].pool = volume_or_host_path.pool.name();
     } else if(typeof(volume_or_host_path) === 'string') {
       this.config.devices[device_name].source = volume_or_host_path;
     } else {
@@ -188,9 +199,8 @@ export default class Container {
 
   // Unmount device
   // @important Call update() on this container to update LXD container
+  // TODO - Keep track of is_loaded somehow to know that we've changed local state
   unmount(device_name) {
-    this.should_be_loaded();
-
     if( ! this.config.devices.hasOwnProperty(device_name)) {
       throw new Error('Device not found');
     }
@@ -203,7 +213,6 @@ export default class Container {
   // Update containers config in LXD with current local container config
   // Its possible to update local config with "mount" & "set_environment_variable" functions
   update() {
-    this.should_be_loaded();
     return this.put(this.config);
   }
 
