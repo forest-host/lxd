@@ -118,7 +118,7 @@ describe('Volume', () => {
     })
     it('Loads volume config', () => {
       volume.name().should.equal(config.volume);
-      volume.is_loaded.should.equal(true);
+      volume.is_synced.should.equal(true);
     })
   })
 
@@ -142,7 +142,7 @@ describe('Volume', () => {
 
     it('Loads volume config', () => {
       volume.name().should.equal(config.volume);
-      volume.is_loaded.should.equal(true);
+      volume.is_synced.should.equal(true);
     })
   })
 
@@ -154,7 +154,7 @@ describe('Volume', () => {
       list.should.not.contain(config.volume);
     });
     it('Unloads config', () => {
-      volume.is_loaded.should.equal(false);
+      volume.is_synced.should.equal(false);
     })
   })
 
@@ -211,7 +211,7 @@ describe('Snapshot', () => {
 
     it('Loads snapshot config', () => {
       snapshot.config.name.should.equal(config.snapshot);
-      snapshot.is_loaded.should.equal(true);
+      snapshot.is_synced.should.equal(true);
     });
   });
 
@@ -241,7 +241,7 @@ describe('Snapshot', () => {
       list.should.not.contain(config.snapshot);
     });
     it('Unloads snapshot config', () => {
-      snapshot.is_loaded.should.equal(false);
+      snapshot.is_synced.should.equal(false);
     });
   });
 })
@@ -302,7 +302,7 @@ describe('Container', () => {
       container.name().should.equal(config.container.name);
       container.config.config.should.have.property('environment.VARNAME').that.equals('val');
       container.config.devices.should.have.property('test').that.has.property('source').that.equals(volume.name());
-      container.is_loaded.should.equal(true);
+      container.is_synced.should.equal(true);
     });
   })
 

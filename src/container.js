@@ -2,11 +2,11 @@
 import extend from 'extend';
 import { Readable as readable } from 'stream';
 import Volume from './volume';
+import Syncable from './syncable';
 
-export default class Container {
+export default class Container extends Syncable {
   constructor(client, name) {
-    this.client = client;
-    return this.set_default_config(name);
+    super(client, name);
   }
 
   set_default_config(name) {
@@ -18,30 +18,11 @@ export default class Container {
       devices: {},
       config: {},
     };
-    this.is_loaded = false;
-
-    return this;
-  }
-
-  name() {
-    return this.config.name;
+    return this.set_synced(false);
   }
 
   url() {
     return `/instances/${this.name()}`;
-  }
-
-  async load() {
-    let response = await this.client.operation().get(this.url());
-    this.config = response;
-    this.is_loaded = true;
-
-    return this;
-  }
-
-  // Unload all config loaded from LXD API (used in tests mostly)
-  unload() {
-    return this.set_default_config(this.config.name);
   }
 
   // Set up container on target cluster host
@@ -153,23 +134,21 @@ export default class Container {
     return this.load();
   }
 
-  // TODO - Keep track of is_loaded somehow to know that we've changed local state
   // Set LXD container config directive
   set_config(key, value) {
     this.config.config[key] = value;
-    return this;
+    return this.set_synced(false);
   }
 
   // Unset LXD container config directive
   unset_config(key) {
     delete this.config.config[key];
-    return this;
+    return this.set_synced(false);
   }
 
   // Set environment variable in container
   // @important Call update() on this container to update LXD container
   // TODO - Validate uppercase key? It's only convention....
-  // TODO - Keep track of is_loaded somehow to know that we've changed local state
   set_environment_variable(key, value) {
     return this.set_config(`environment.${key}`, value);
   }
@@ -180,7 +159,6 @@ export default class Container {
   // Mount LXD volume or host path in this container at container path
   // @important Call update() on this container to update LXD container
   // TODO - Check if container_path is unique? LXD probably does this aswell, test for this?
-  // TODO - Keep track of is_loaded somehow to know that we've changed local state
   mount(volume_or_host_path, container_path, device_name) {
     this.config.devices[device_name] = {
       path: container_path,
@@ -196,21 +174,18 @@ export default class Container {
       throw new Error('Only volumes or host paths can be mounted')
     }
 
-    // Chainable
-    return this;
+    return this.set_synced(false);
   }
 
   // Unmount device
   // @important Call update() on this container to update LXD container
-  // TODO - Keep track of is_loaded somehow to know that we've changed local state
   unmount(device_name) {
     if( ! this.config.devices.hasOwnProperty(device_name)) {
       throw new Error('Device not found');
     }
 
     delete this.config.devices[device_name];
-
-    return this;
+    return this.set_synced(false);
   }
 
   // Update containers config in LXD with current local container config
