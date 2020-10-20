@@ -99,7 +99,7 @@ export default class Container extends Syncable {
   }
 
   // Wait a bit for network address, DHCP servers can be sloooooooooow
-  async wait_for_dhcp(retries = 0) {
+  async wait_for_dhcp_lease(retries = 0) {
     // Keep trying for 30 seconds
     if(retries >= 60) {
       throw new Error('Container could not get dhcp lease');
@@ -110,7 +110,7 @@ export default class Container extends Syncable {
     if( ! addresses.length) {
       // Wait for 500 ms, then try again
       await new Promise((resolve) => setTimeout(resolve, 500));
-      return this.wait_for_dhcp(++retries);
+      return this.wait_for_dhcp_lease(++retries);
     } else {
       return this;
     }

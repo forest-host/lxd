@@ -321,11 +321,11 @@ describe('Container', () => {
     });
   });
 
-  describe('wait_for_dhcp()', () => {
+  describe('wait_for_dhcp_lease()', () => {
     it('Waits for dhcp lease', async function() {
       this.timeout(10000);
 
-      await container.wait_for_dhcp()
+      await container.wait_for_dhcp_lease()
       let addresses = await container.get_ipv4_addresses();
       addresses.should.have.length(1);
     });
