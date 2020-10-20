@@ -1,5 +1,4 @@
 
-import extend from 'extend';
 import { Readable as readable } from 'stream';
 import Volume from './volume';
 import Syncable from './syncable';

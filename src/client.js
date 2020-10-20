@@ -4,7 +4,6 @@ import stream from 'stream';
 import fs from 'fs';
 import request from 'request-promise-native';
 import WebSocket from 'ws';
-import extend from '@forest.host/extend';
 
 import { AsyncOperation, Operation } from './operation';
 import Container from './container';
@@ -13,8 +12,9 @@ import { map_series, wait_for_socket_open } from './util';
 
 export default class Client {
   constructor(config) {
+    this.config = config;
     // Add defaults
-    this.config = extend({ api_version: '1.0', }, config);
+    this.config.api_version = '1.0';
     this.config.base_url = `${this.config.host}:${this.config.port}/${this.config.api_version}`;
 
     // Load certs if string was passed

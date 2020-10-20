@@ -1,6 +1,4 @@
 
-import extend from '@forest.host/extend';
-
 import chai from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 chai.should();
