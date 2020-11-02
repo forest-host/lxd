@@ -47,8 +47,11 @@ var config = {
   },
   container: {
     name: 'test',
-    os: 'Alpine',
-    release: '3.12',
+    image: {
+      os: 'Alpine',
+      release: '3.12',
+      architecture: 'amd64',
+    },
     upload: {
       content: 'string',
       path: '/uploaded.txt',
@@ -100,7 +103,7 @@ describe('Pool', () => {
 });
 
 describe('Volume', () => {
-  let container = lxd.get_container(config.container.name).from_image(config.container.os, config.container.release);
+  let container = lxd.get_container(config.container.name).from_image(config.container.image);
   let volume = pool.get_volume(config.volume);
 
   // Clean up failed previous runs
@@ -165,7 +168,7 @@ describe('Volume', () => {
 })
 
 describe('Snapshot', () => {
-  let container = lxd.get_container(config.container.name).from_image(config.container.os, config.container.release);
+  let container = lxd.get_container(config.container.name).from_image(config.container.image);
   let volume = pool.get_volume(config.volume);
   let snapshot = volume.get_snapshot(config.snapshot);
 
@@ -273,7 +276,7 @@ describe('Container', () => {
 
   describe('from_image()', () => {
     it('Sets container image', () => {
-      container.from_image(config.container.os, config.container.release);
+      container.from_image(config.container.image);
       container.config.source.should.not.be.undefined;
     });
   });
