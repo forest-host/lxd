@@ -31,18 +31,20 @@ export default class Container extends Syncable {
     return this;
   }
 
-  // Setup new container from source image
-  // properties should be an object that can be passed to LXD API
+  // Setup new container from source image with alias
   // like {
-  //  os:"alpine", release:"3.12", architecture:"amd64",
+  //   properties: { os:"alpine", release:"3.12", architecture:"amd64" },
   // } or {
-  //  alias:"php_release_7_4",
+  //   alias:"php_release_7_4",
   // }
-  from_image(properties) {
-    this.config.source = {
-      type: 'image',
-      properties,
-    };
+  from_image(alias) {
+    this.config.source = { type: 'image', alias, };
+    return this;
+  }
+
+  // Setup new container from source image with properties
+  from_image_properties(os, release, architecture = "amd64") {
+    this.config.source = { type: 'image', properties: { os, release, architecture }, };
     return this;
   }
 
