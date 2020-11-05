@@ -50,7 +50,6 @@ var config = {
     image: {
       os: 'Alpine',
       release: '3.12',
-      architecture: 'amd64',
     },
     upload: {
       content: 'string',
@@ -103,7 +102,7 @@ describe('Pool', () => {
 });
 
 describe('Volume', () => {
-  let container = lxd.get_container(config.container.name).from_image(config.container.image);
+  let container = lxd.get_container(config.container.name).from_image_properties(config.container.image.os, config.container.image.release);
   let volume = pool.get_volume(config.volume);
 
   // Clean up failed previous runs
@@ -168,7 +167,7 @@ describe('Volume', () => {
 })
 
 describe('Snapshot', () => {
-  let container = lxd.get_container(config.container.name).from_image(config.container.image);
+  let container = lxd.get_container(config.container.name).from_image_properties(config.container.image.os, config.container.image.release);
   let volume = pool.get_volume(config.volume);
   let snapshot = volume.get_snapshot(config.snapshot);
 
@@ -275,9 +274,16 @@ describe('Container', () => {
   after(() => volume.destroy());
 
   describe('from_image()', () => {
-    it('Sets container image', () => {
-      container.from_image(config.container.image);
-      container.config.source.should.not.be.undefined;
+    it('Sets image source with alias', () => {
+      container.from_image('alias');
+      container.config.source.alias.should.not.be.undefined;
+    })
+  });
+
+  describe('from_image_properties()', () => {
+    it('Sets image source with image properties', () => {
+      container.from_image_properties(config.container.image.os, config.container.image.release);
+      container.config.source.properties.should.not.be.undefined;
     });
   });
 
