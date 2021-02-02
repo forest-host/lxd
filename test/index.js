@@ -70,16 +70,16 @@ const lxd = new LXD(config.client);
 const pool = lxd.get_pool(config.pool);
 
 const clean_up_failed_tests = async function() {
-  let container_list = await lxd.list();
-  if(container_list.indexOf(config.container.name) !== -1) {
+  try {
     await lxd.get_container(config.container.name).stop();
+  } catch(_) {}
+  try {
     await lxd.get_container(config.container.name).destroy();
-  }
+  } catch(_) {}
 
-  let volume_list = await pool.list();
-  if(volume_list.indexOf(config.volume) !== -1) {
+  try {
     await pool.get_volume(config.volume).destroy();
-  }
+  } catch(_) {}
 }
 
 describe('Pool', () => {

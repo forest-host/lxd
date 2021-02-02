@@ -80,10 +80,10 @@ export default class Container extends Syncable {
       .put(`${this.url()}/state`, { action, timeout, force, stateful })
 
     if(response.err) {
-      return Promise.reject(response.err);
-    } else {
-      return this;
+      throw new Error(response.err);
     }
+
+    return this;
   }
 
   start() { return this.set_state('start', ...arguments); }
