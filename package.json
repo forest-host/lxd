@@ -18,15 +18,15 @@
   "dependencies": {
     "request": "^2.88.2",
     "request-promise-native": "^1.0.9",
-    "ws": "^7.3.1"
+    "ws": "^7.4.3"
   },
   "devDependencies": {
-    "chai": "^4.2.0",
+    "chai": "^4.3.0",
     "chai-as-promised": "^7.1.1",
-    "@babel/cli": "^7.10.5",
-    "@babel/core": "^7.11.4",
-    "@babel/plugin-transform-modules-commonjs": "^7.10.4",
-    "@babel/register": "^7.10.5",
-    "mocha": "^8.1.2"
+    "@babel/cli": "^7.12.13",
+    "@babel/core": "^7.12.13",
+    "@babel/plugin-transform-modules-commonjs": "^7.12.13",
+    "@babel/register": "^7.12.13",
+    "mocha": "^8.2.1"
   }
 }
