@@ -1,5 +1,42 @@
 
+import { EventEmitter } from 'events';
 import { map_series, wait_for_socket_open } from './util';
+
+// Cache events that occurred in LXD.
+// We do this because events could occur before we are listening when running async operations
+class EventStash extends EventEmitter {
+  constructor(client) {
+    super();
+    this.client = client;
+    this.events = [];
+
+    this.once('newListener', (_, listener) => {
+      this.events.forEach(data => listener(data));
+    })
+  }
+
+  // Listen for operation events on global LXD events sckoet
+  async open_socket() {
+    this.socket = await wait_for_socket_open(this.client.open_socket('/events?type=operation'));
+
+    this.socket.on('message', string => {
+      let message = JSON.parse(string);
+
+      if(this.listenerCount('message') > 0) {
+        // If there's listeners, pass it on
+        this.emit('message', message);
+      } else {
+        // If there's no listeners, save event so we can pass it when something starts listening
+        this.events.push(message);
+      }
+    });
+  }
+
+  // Close event socket
+  close_socket() {
+    this.socket.close();
+  }
+}
 
 // TODO - We should be able to determine async or sync from response of LXD API, why don't we do this?
 export class Operation {
@@ -11,7 +48,6 @@ export class Operation {
   async request() {
     let response = await this.client.request(...arguments);
     // TODO - Error handling?
-    //console.log(response);
 
     return response.metadata;
   }
@@ -44,53 +80,52 @@ export class AsyncOperation extends Operation {
 
   // Override operation request method to wait for operation updates over global events socket
   async request() {
+    // Cache events as we get events before we get the metadata back from request function 
+    let stash = new EventStash(this.client);
     // Wait for socket to open before executing operation
-    let socket = await wait_for_socket_open(this.client.open_socket('/events?type=operation'));
+    // This way we are sure we catch the events for this operation
+    await stash.open_socket();
 
     try {
       let metadata = await super.request(...arguments);
-      let output = await this.process_operation(metadata, socket);
+      let output = await this.process_operation(metadata, stash);
 
-      // Close events socket after succesful operation
-      socket.close();
       return output;
     } catch(err) {
-      // Just in case something fails, close socket
-      socket.close();
       throw err;
+    } finally {
+      // Always close socket
+      stash.close_socket();
     }
   }
 
   // Async operations can have multiple classes that require different handling
-  async process_operation(metadata, socket) {
+  async process_operation(metadata, stash) {
     switch (metadata.class) {
       case 'task':
-        return this.process_task_operation(metadata, socket);
+        return this.process_task_operation(metadata, stash);
       case 'websocket':
         return this.process_websocket_operation(metadata);
       case 'token':
         return Promise.resolve(metadata);
       default: 
-        console.log(metadata);
         return Promise.reject(new Error('API returned unknown operation class'));
     }
   }
 
   // Task operations are simple async operations
-  process_task_operation(metadata, socket) {
+  process_task_operation(metadata, stash) {
     return new Promise((resolve, reject) => {
-      socket.on('message', message => {
-        var data = JSON.parse(message).metadata;
-
+      stash.on('message', message => {
         // Don't handle events for other operations
-        if(data.id != metadata.id) {
+        if(message.metadata.id != metadata.id) {
           return;
         }
-        if(data.status_code == 200) {
-          return resolve(data);
+        if(message.metadata.status_code == 200) {
+          return resolve(message.metadata);
         }
-        if(data.status_code == 400 || data.status_code == 401) {
-          return reject(new Error(data.err));
+        if(message.metadata.status_code == 400 || message.metadata.status_code == 401) {
+          return reject(new Error(message.metadata.err));
         }
       });
     });

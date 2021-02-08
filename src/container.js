@@ -69,15 +69,15 @@ export default class Container extends Syncable {
     }
 
     // Create container
-    await this.client.async_operation().post(...args)
+    let res = await this.client.async_operation().post(...args)
     return this.load();
   }
 
   // (stop, start, restart, freeze or unfreeze)
   async set_state(action, force = false, timeout = 60, stateful = false) {
     // create container request
-    let response = await this.client.async_operation()
-      .put(`${this.url()}/state`, { action, timeout, force, stateful })
+    let operation = this.client.async_operation()
+    let response = await operation.put(`${this.url()}/state`, { action, timeout, force, stateful })
 
     if(response.err) {
       throw new Error(response.err);

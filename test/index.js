@@ -510,3 +510,22 @@ describe('Container', () => {
     });
   });
 });
+
+// This test is here to test the event stash, as LXD was passing events before we were listening
+describe('Destroying container after creating it', () => {
+  it('Returns', async function() {
+    this.timeout(30000);
+
+    let container = await lxd
+      .get_container(config.container.name)
+      .from_image_properties(config.container.image.os, config.container.image.release)
+      .create();
+
+    try {
+      await container.stop();
+    } catch(err) { console.error('Could not stop container') };
+    try {
+      await container.destroy();
+    } catch(err) { console.error('Could not destroy container') };
+  })
+})
