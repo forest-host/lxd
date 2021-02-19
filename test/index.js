@@ -1,4 +1,5 @@
 
+import fs from 'fs';
 import chai from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 chai.should();
@@ -49,9 +50,13 @@ var config = {
     name: 'test',
     image: {
       os: 'Alpine',
-      release: '3.12',
+      release: 'edge',
     },
     upload: {
+      file: './test/transfer.txt',
+      path: '/transfer.txt',
+    },
+    upload_string: {
       content: 'string',
       path: '/uploaded.txt',
     },
@@ -477,22 +482,28 @@ describe('Container', () => {
   });
 
   describe('upload_string()', () => {
-    before(() => container.upload_string(config.container.upload.content, config.container.upload.path));
+    before(() => container.upload_string(config.container.upload_string.content, config.container.upload_string.path));
 
     it('Uploads a string to a file in container', async () => {
-      let { output } = await container.exec('cat', [config.container.upload.path]);
-      output.should.contain(config.container.upload.content);
+      let { output } = await container.exec('cat', [config.container.upload_string.path]);
+      output.should.contain(config.container.upload_string.content);
     })
   });
 
   describe('upload()', () => {
-    it('Streams readable stream to container');
+    before(() => container.upload(fs.createReadStream(config.container.upload.file), config.container.upload.path));
+
+    it('Streams readable stream to container', async () => {
+      let { size } = await fs.promises.stat(config.container.upload.file);
+      let { output } = await container.exec('stat -c %s', [config.container.upload.path]);
+      output[0].should.contain(size);
+    });
   })
 
   describe('download()', () => {
     it('Downloads a file from container', () => {
       return container.download(config.container.download.source)
-        .should.eventually.equal(config.container.upload.content);
+        .should.eventually.equal(config.container.upload_string.content);
     });
   })
 

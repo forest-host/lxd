@@ -257,7 +257,7 @@ export default class Container extends Syncable {
       method: 'POST',
       url: `${this.url()}/files`,
       qs: { path },
-      json: false,
+      json: true,
       headers: {
         'X-LXD-type': 'file',
       }
@@ -267,7 +267,7 @@ export default class Container extends Syncable {
       stream.on('error', reject);
       stream.on('end', () => {
         stream.destroy();
-        resolve();
+        resolve(request);
       });
 
       stream.pipe(request);
