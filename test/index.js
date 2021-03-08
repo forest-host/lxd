@@ -505,6 +505,11 @@ describe('Container', () => {
       return container.download(config.container.download.source)
         .should.eventually.equal(config.container.upload_string.content);
     });
+
+    it('Errors on non-existant file', () => {
+      return container.download('/this_does_not_exist')
+        .should.be.rejected;
+    })
   })
 
   describe('delete()', () => {
