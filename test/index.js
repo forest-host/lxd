@@ -69,6 +69,7 @@ var config = {
   volume: 'volume',
   clone: 'clone',
   snapshot: 'snapshot',
+  backup: 'backup'
 };
 
 const lxd = new LXD(config.client);
@@ -247,6 +248,55 @@ describe('Snapshot', () => {
     });
     it('Unloads snapshot config', () => {
       snapshot.is_synced.should.equal(false);
+    });
+  });
+})
+
+describe('Backup', () => {
+  let volume = pool.get_volume(config.volume);
+  let backup = volume.get_backup(config.backup);
+
+  before(() => volume.create());
+  after(() => volume.destroy());
+
+  describe('create()', () => {
+    before(() => backup.create());
+    after(() => backup.unload());
+
+    it('Creates backup', async () => {
+      let list = await volume.list_backups();
+      list.should.contain(config.backup);
+    });
+    it('Loads backup config', () => {
+      backup.config.name.should.equal(config.backup);
+    });
+
+  });
+
+  describe('load()', () => {
+    before(() => {
+      return backup.load();
+    });
+
+    it('Loads backup config', () => {
+      backup.config.name.should.equal(config.backup);
+      backup.is_synced.should.equal(true);
+    });
+  });
+
+  describe('export()', () => {
+    it('Exports backup');
+  });
+
+  describe('destroy()', () => {
+    before(() => backup.destroy());
+
+    it('Destroys backup', async () => {
+      let list = await volume.list_backups();
+      list.should.not.contain(config.backup);
+    });
+    it('Unloads backup config', () => {
+      backup.is_synced.should.equal(false);
     });
   });
 })

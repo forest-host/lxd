@@ -3,6 +3,7 @@ import path from 'path';
 
 import Syncable from './syncable';
 import Snapshot from './snapshot';
+import Backup from './backup';
 
 export default class Volume extends Syncable {
   constructor(pool, name) {
@@ -47,6 +48,15 @@ export default class Volume extends Syncable {
 
   async list_snapshots() {
     let list = await this.pool.client.operation().get(`${this.url()}/snapshots`);
+    return list.map(url => path.basename(url));
+  }
+
+  get_backup(name) {
+    return new Backup(this, name);
+  }
+
+  async list_backups() {
+    let list = await this.pool.client.operation().get(`${this.url()}/backups`);
     return list.map(url => path.basename(url));
   }
 }
