@@ -1,5 +1,6 @@
 
 import fs from 'fs';
+import { Writable } from 'stream';
 import chai from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 chai.should();
@@ -255,8 +256,13 @@ describe('Snapshot', () => {
 describe('Backup', () => {
   let volume = pool.get_volume(config.volume);
   let backup = volume.get_backup(config.backup);
+  let snapshot = volume.get_snapshot(config.snapshot);
 
-  before(() => volume.create());
+  before(async () => {
+    await volume.create()
+    await snapshot.create();
+  });
+
   after(() => volume.destroy());
 
   describe('create()', () => {
@@ -267,10 +273,13 @@ describe('Backup', () => {
       let list = await volume.list_backups();
       list.should.contain(config.backup);
     });
+
     it('Loads backup config', () => {
       backup.config.name.should.equal(config.backup);
     });
 
+    it('Creates backup including snapshots');
+    // backup.create(false);
   });
 
   describe('load()', () => {
@@ -284,8 +293,21 @@ describe('Backup', () => {
     });
   });
 
-  describe('export()', () => {
-    it('Exports backup');
+  describe('download()', () => {
+    it('download backup', async () => {
+      let converter = new Writable();
+      let readable = backup.download();
+      readable.pipe(converter);
+
+      // Write data to nowhere
+      converter._write = () => {};
+
+      readable.on('end', function() {
+        // @TODO is there an easier and/or better way to test this?
+        // Dont want to actually download the whole thing, lxd does exporting fine, dont need to do a test for them
+        readable.response.headers['content-type'].should.equal('application/octet-stream');
+      });
+    });
   });
 
   describe('destroy()', () => {
