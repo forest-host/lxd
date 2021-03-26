@@ -11,8 +11,8 @@ export default class Backup extends Syncable {
     return `${this.volume.url()}/backups/${this.name()}`;
   }
 
-  async create(instance_only = true) {
-    await this.client.async_operation().post(`${this.volume.url()}/backups`, {...this.config, instance_only});
+  async create() {
+    await this.client.async_operation().post(`${this.volume.url()}/backups`, {...this.config, instance_only: true});
     return this.load();
   }
 

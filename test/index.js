@@ -256,11 +256,9 @@ describe('Snapshot', () => {
 describe('Backup', () => {
   let volume = pool.get_volume(config.volume);
   let backup = volume.get_backup(config.backup);
-  let snapshot = volume.get_snapshot(config.snapshot);
 
   before(async () => {
     await volume.create()
-    await snapshot.create();
   });
 
   after(() => volume.destroy());
@@ -278,8 +276,6 @@ describe('Backup', () => {
       backup.config.name.should.equal(config.backup);
     });
 
-    it('Creates backup including snapshots');
-    // backup.create(false);
   });
 
   describe('load()', () => {
@@ -303,8 +299,6 @@ describe('Backup', () => {
       converter._write = () => {};
 
       readable.on('end', function() {
-        // @TODO is there an easier and/or better way to test this?
-        // Dont want to actually download the whole thing, lxd does exporting fine, dont need to do a test for them
         readable.response.headers['content-type'].should.equal('application/octet-stream');
       });
     });
