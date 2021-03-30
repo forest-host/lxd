@@ -7,12 +7,27 @@ export default class Backup extends Syncable {
     this.volume = volume;
   }
 
+
+  set_default_config(name) {
+    this.config = {
+      name,
+      volume_only: true,
+      optimized_storage: true,
+    };
+    return this.set_synced(false);
+  }
+
+  set_expires_at(expires_at) {
+    this.config.expires_at = expires_at;
+    return this;
+  }
+
   url() {
     return `${this.volume.url()}/backups/${this.name()}`;
   }
 
   async create() {
-    await this.client.async_operation().post(`${this.volume.url()}/backups`, {...this.config, instance_only: true});
+    await this.client.async_operation().post(`${this.volume.url()}/backups`, this.config);
     return this.load();
   }
 

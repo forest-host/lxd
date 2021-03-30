@@ -178,7 +178,7 @@ describe('Snapshot', () => {
   let volume = pool.get_volume(config.volume);
   let snapshot = volume.get_snapshot(config.snapshot);
 
-  // Do all this to test snapshot restore, 
+  // Do all this to test snapshot restore,
   // seems like a lot of work to check if restore is working...
   // We do this here so we can use the snapshot create test to create snapshot and save time..
   before(async function() {
@@ -264,7 +264,7 @@ describe('Backup', () => {
   after(() => volume.destroy());
 
   describe('create()', () => {
-    before(() => backup.create());
+    before(() => backup.set_expires_at(new Date()).create());
     after(() => backup.unload());
 
     it('Creates backup', async () => {
