@@ -53,6 +53,10 @@ var config = {
       os: 'Alpine',
       release: 'edge',
     },
+    variable: {
+      key: 'TREE',
+      value: 'Beech',
+    },
     upload: {
       file: './test/transfer.txt',
       path: '/transfer.txt',
@@ -113,7 +117,7 @@ describe('Volume', () => {
   let volume = pool.get_volume(config.volume);
 
   // Clean up failed previous runs
-  //before(function() { this.timeout(30000); return clean_up_failed_tests(); });
+  before(function() { this.timeout(30000); return clean_up_failed_tests(); });
 
   describe('create()', () => {
     before(() => volume.create())
@@ -321,7 +325,7 @@ describe('LXD Client', () => {
   let container = lxd.get_container(config.container.name);
 
   // Clean up previously failed tests
-  //before(function() { this.timeout(30000); return clean_up_failed_tests(); });
+  before(function() { this.timeout(30000); return clean_up_failed_tests(); });
 
   describe('list()', () => {
     it('Responds with a array', async () => {
@@ -341,7 +345,12 @@ describe('Container', () => {
   let container = lxd.get_container(config.container.name);
   let volume = pool.get_volume(config.volume);
 
-  before(() => volume.create());
+  // Clean up previously failed tests
+  before(async function() { 
+    this.timeout(30000); 
+    await clean_up_failed_tests(); 
+    return volume.create();
+  });
   after(() => volume.destroy());
 
   describe('from_image()', () => {
@@ -366,11 +375,11 @@ describe('Container', () => {
     before(() => {
       return container
         .mount(volume, '/test', 'test')
-        .set_environment_variable('VARNAME', 'val')
+        .set_environment_variable(config.container.variable.key, config.container.variable.value)
         .create();
     })
 
-    after(() => container.unmount('test').unset_environment_variable('VARNAME').update());
+    after(() => container.unmount('test').unset_environment_variable(config.container.variable.key).update());
 
     it('Creates container', () => {
       lxd.list().should.eventually.contain(config.container.name);
@@ -378,7 +387,8 @@ describe('Container', () => {
 
     it('Loads config', () => {
       container.name().should.equal(config.container.name);
-      container.config.config.should.have.property('environment.VARNAME').that.equals('val');
+      container.config.config.should.have.property(`environment.${config.container.variable.key}`)
+        .that.equals(config.container.variable.value);
       container.config.devices.should.have.property('test').that.has.property('source').that.equals(volume.name());
       container.is_synced.should.equal(true);
     });
@@ -448,9 +458,10 @@ describe('Container', () => {
 
   describe('set_environment_variable()', () => {
     it('Adds environment variable to local config', () => {
-      container.set_environment_variable('VARIABLE_NAME', 'value');
+      container.set_environment_variable(config.container.variable.key, config.container.variable.value);
 
-      container.config.config.should.have.property('environment.VARIABLE_NAME').that.equals('value');
+      container.config.config.should.have.property(`environment.${config.container.variable.key}`)
+        .that.equals(config.container.variable.value);
     });
   })
 
@@ -462,7 +473,7 @@ describe('Container', () => {
 
       return container
         .mount(volume, '/test', 'test')
-        .set_environment_variable('VARNAME', 'val')
+        .set_environment_variable(config.container.variable.key, config.container.variable.value)
         .update()
     })
 
@@ -471,7 +482,8 @@ describe('Container', () => {
     });
 
     it('Updates config of container in LXD with local config', () => {
-      container.config.config.should.have.property('environment.VARNAME').that.equals('val');
+      container.config.config.should.have.property(`environment.${config.container.variable.key}`)
+        .that.equals(config.container.variable.value);
       container.config.devices.should.have.property('test').that.has.property('source').that.equals(volume.name());
     });
   })
@@ -482,9 +494,26 @@ describe('Container', () => {
       output[0].should.contain(config.container.name);
     });
 
+    it('Executes command in root path when no working directory is passed', async () => {
+      let { output } = await container.exec('pwd');
+      output[0].should.equal('/root');
+    })
+
+    it('Executes command in working directory that was passed', async () => {
+      let cwd = '/etc';
+      let { output } = await container.exec('pwd', { cwd });
+      output[0].should.equal(cwd);
+    })
+
+    it('Has access to environment variables', async () => {
+      // We'll have to execute in shell to echo env variables
+      let { output } = await container.exec('/bin/sh', ['-c', `echo $${config.container.variable.key}`]);
+      output[0].should.equal(config.container.variable.value);
+    })
+
     it('Interrupts commands that run longer than timeout when timeout is passed', async () => {
       // Timeout is in millis
-      let command = await container.exec('sleep', ['3;', 'echo', 'test'], { timeout: 500 });
+      let command = await container.exec('sleep', ['3'], { timeout: 500 });
       command.output.should.have.length(0);
       command.status.should.be.above(0);
     });
@@ -561,7 +590,7 @@ describe('Container', () => {
 
     it('Streams readable stream to container', async () => {
       let { size } = await fs.promises.stat(config.container.upload.file);
-      let { output } = await container.exec('stat -c %s', [config.container.upload.path]);
+      let { output } = await container.exec('stat', ['-c', '%s', config.container.upload.path]);
       output[0].should.contain(size);
     });
   })

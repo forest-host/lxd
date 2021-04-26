@@ -211,17 +211,22 @@ export default class Container extends Syncable {
     args = Array.isArray(arguments[1]) ? arguments[1] : [];
 
     // Change dir before command execution if cwd is set
-    cmd = 'cwd' in options && options.cwd != '' ? `cd ${options.cwd}; ${cmd}` : cmd;
+    //cmd = 'cwd' in options && options.cwd != '' ? `cd ${options.cwd}; ${cmd}` : cmd;
     // Add args to cmd
-    cmd += args.length ? ' ' + args.join(' ') : '';
+    //cmd += args.length ? ' ' + args.join(' ') : '';
 
     // Run command with joined args on container
     let body = {
-      command: ['/bin/sh', '-c', cmd],
+      command: [cmd, ...args],
+      //command: ['/bin/sh', '-c', cmd],
       environment: options.environment || {},
       'wait-for-websocket': true,
       interactive: true,
     };
+
+    if(options.hasOwnProperty('cwd')) {
+      body.cwd = options.cwd;
+    }
 
     let operation = this.client.async_operation();
 
