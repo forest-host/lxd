@@ -162,18 +162,24 @@ export class AsyncOperation extends Operation {
   // Finalize websocket operation, collecting data from sockets or returning them directly based on "interactive" bool
   async finalize_websocket_operation(sockets, metadata) {
     var result = {
-      output: [],
+      stdout: [],
+      stderr: [],
     };
 
-    // Create arrays of lines of output
-    sockets['0'].on('message', data => {
-      let string = data.toString('utf8').trim();
+    for (let i = 0; i < Object.keys(result).length; i++) {
+      let key = Object.keys(result)[i];
 
-      // Push strings onto output array, seperated by newline, use apply so we can pass split string as arguments to push
-      if(string) {
-        result.output = [ ...result.output, ...string.split('\n')];
-      }
-    });
+      // Create arrays of lines of output
+      sockets[(i + 1).toString()].on('message', data => {
+        let string = data.toString('utf8').trim();
+
+        // Push strings onto output array, seperated by newline, use apply so we can pass split string as arguments to push
+        if(string) {
+          result[key] = [ ...result[key], ...string.split('\n')];
+        }
+      });
+    }
+
 
     let output = await new Promise((resolve, reject) => {
       // We do not want to run commands longer than 10 minutes, send kill signal after that
@@ -192,11 +198,6 @@ export class AsyncOperation extends Operation {
         });
       });
 
-      // TODO - Now we return on closed state of stdin/stdout socket. Before, we sometimes queried the operation before it was finished
-      // resulting in no status_code. See if this will solve that
-      sockets[0].on('close', () => {
-        resolve(result);
-      });
 
       // Control socket closes when done executing, we will have to close the other sockets manually after control closes
       sockets.control.on('close', () => {
@@ -206,7 +207,8 @@ export class AsyncOperation extends Operation {
         }
 
         // When control closes, we can safely close the stdin/stdout socket
-        sockets[0].close();
+        ['0', '1', '2'].forEach(key => sockets[key].close());
+        resolve(result);
       });
     });
 

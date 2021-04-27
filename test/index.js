@@ -1,6 +1,8 @@
 
 import fs from 'fs';
-import { Writable } from 'stream';
+import path from 'path';
+import WebSocket from 'ws';
+
 import chai from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 chai.should();
@@ -294,18 +296,7 @@ describe('Backup', () => {
   });
 
   describe('download()', () => {
-    it('download backup', async () => {
-      let converter = new Writable();
-      let readable = backup.download();
-      readable.pipe(converter);
-
-      // Write data to nowhere
-      converter._write = () => {};
-
-      readable.on('end', function() {
-        readable.response.headers['content-type'].should.equal('application/octet-stream');
-      });
-    });
+    it('download backup');
   });
 
   describe('destroy()', () => {
@@ -436,6 +427,11 @@ describe('Container', () => {
     it('Updates container config', () => {
       container.config.config.should.have.property('environment.CONTAINER_NAME').that.equals(config.container.name);
     });
+
+    it('Correctly handles multiline variables', async () => {
+      await container.patch({ config: { 'environment.PRIVATE_KEY': multiline_string }});
+      container.config.config['environment.PRIVATE_KEY'].should.equal(multiline_string);
+    });
   });
 
   describe('mount()', () => {
@@ -490,32 +486,32 @@ describe('Container', () => {
 
   describe('exec()', () => {
     it('Executes command in container', async () => {
-      let { output } = await container.exec('hostname')
-      output[0].should.contain(config.container.name);
+      let { stdout } = await container.exec('hostname')
+      stdout[0].should.contain(config.container.name);
     });
 
     it('Executes command in root path when no working directory is passed', async () => {
-      let { output } = await container.exec('pwd');
-      output[0].should.equal('/root');
+      let { stdout } = await container.exec('pwd');
+      stdout[0].should.equal('/root');
     })
 
     it('Executes command in working directory that was passed', async () => {
       let cwd = '/etc';
-      let { output } = await container.exec('pwd', { cwd });
-      output[0].should.equal(cwd);
+      let { stdout } = await container.exec('pwd', { cwd });
+      stdout[0].should.equal(cwd);
     })
 
     it('Has access to environment variables', async () => {
       // We'll have to execute in shell to echo env variables
-      let { output } = await container.exec('/bin/sh', ['-c', `echo $${config.container.variable.key}`]);
-      output[0].should.equal(config.container.variable.value);
+      let { stdout } = await container.exec('/bin/sh', ['-c', `echo $${config.container.variable.key}`]);
+      stdout[0].should.equal(config.container.variable.value);
     })
 
     it('Interrupts commands that run longer than timeout when timeout is passed', async function() {
       this.timeout(1000);
       // Timeout is in millis
       let command = await container.exec('sleep', ['3'], { timeout: 500 });
-      command.output.should.have.length(0);
+      command.stdout.should.have.length(0);
       command.status.should.be.above(0);
     });
 
@@ -529,7 +525,7 @@ describe('Container', () => {
       sockets.should.have.property('0');
 
       // See if output matches
-      sockets['0'].on('message', data => {
+      sockets['1'].on('message', data => {
         var string = data.toString('utf8').trim();
 
         // Push strings onto output array, seperated by newline, use apply so we can pass split string as arguments to push
@@ -542,7 +538,7 @@ describe('Container', () => {
         // When control closes, run tests
         sockets.control.on('close', () => {
           // When control closes, we need to close the stdin/stdout socket
-          sockets[0].close();
+          ['0', '1', '2'].forEach(key => sockets[key].close());
           messages.map(m => m.toString().should.contain('test'))
           resolve();
         });
@@ -570,19 +566,14 @@ describe('Container', () => {
         return container.exec(command.cmd, command.args);
       })
     })
-
-    it('Correctly handles multiline variables', async () => {
-      await container.patch({ config: { 'environment.PRIVATE_KEY': multiline_string }});
-      container.config.config['environment.PRIVATE_KEY'].should.equal(multiline_string);
-    });
   });
 
   describe('upload_string()', () => {
     before(() => container.upload_string(config.container.upload_string.content, config.container.upload_string.path));
 
     it('Uploads a string to a file in container', async () => {
-      let { output } = await container.exec('cat', [config.container.upload_string.path]);
-      output.should.contain(config.container.upload_string.content);
+      let { stdout } = await container.exec('cat', [config.container.upload_string.path]);
+      stdout.should.contain(config.container.upload_string.content);
     })
   });
 
@@ -591,8 +582,8 @@ describe('Container', () => {
 
     it('Streams readable stream to container', async () => {
       let { size } = await fs.promises.stat(config.container.upload.file);
-      let { output } = await container.exec('stat', ['-c', '%s', config.container.upload.path]);
-      output[0].should.contain(size);
+      let { stdout } = await container.exec('stat', ['-c', '%s', config.container.upload.path]);
+      stdout[0].should.contain(size);
     });
   })
 

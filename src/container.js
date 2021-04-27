@@ -215,7 +215,7 @@ export default class Container extends Syncable {
       command: [cmd, ...args],
       environment: options.environment || {},
       'wait-for-websocket': true,
-      interactive: true,
+      interactive: false,
     };
 
     // Change directory when it was set as option
