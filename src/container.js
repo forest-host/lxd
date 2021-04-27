@@ -210,26 +210,21 @@ export default class Container extends Syncable {
     // It is possible to not pass arguments, so check if second argument to function is an array of arguments
     args = Array.isArray(arguments[1]) ? arguments[1] : [];
 
-    // Change dir before command execution if cwd is set
-    //cmd = 'cwd' in options && options.cwd != '' ? `cd ${options.cwd}; ${cmd}` : cmd;
-    // Add args to cmd
-    //cmd += args.length ? ' ' + args.join(' ') : '';
-
     // Run command with joined args on container
     let body = {
       command: [cmd, ...args],
-      //command: ['/bin/sh', '-c', cmd],
       environment: options.environment || {},
       'wait-for-websocket': true,
       interactive: true,
     };
 
+    // Change directory when it was set as option
     if(options.hasOwnProperty('cwd')) {
       body.cwd = options.cwd;
     }
 
+    // Create exec operation
     let operation = this.client.async_operation();
-
     if(typeof(options.interactive) === 'boolean' && options.interactive) {
       operation.make_interactive();
     }

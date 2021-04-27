@@ -511,7 +511,8 @@ describe('Container', () => {
       output[0].should.equal(config.container.variable.value);
     })
 
-    it('Interrupts commands that run longer than timeout when timeout is passed', async () => {
+    it('Interrupts commands that run longer than timeout when timeout is passed', async function() {
+      this.timeout(1000);
       // Timeout is in millis
       let command = await container.exec('sleep', ['3'], { timeout: 500 });
       command.output.should.have.length(0);
