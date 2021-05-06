@@ -137,13 +137,39 @@ describe('Volume', () => {
 
   describe('clone_from()', () => {
     let clone = pool.get_volume('clone').clone_from(volume);
+    let string = 'this is a string\n';
+    let file = 'test.txt';
+    let mount = {
+      path: '/volume',
+      name: 'volume',
+    };
 
     before(async () => {
-      await container.create()
-    })
+      // Create container that has volume mounted & upload something to volume so we can test cloning
+      await container
+        .mount(volume, mount.path, mount.name)
+        .create();
+      await container.start();
+      await container.upload_string(string, path.join(mount.path, file));
 
+      // Create a clone & mount it instead of origin volume
+      await clone.create();
+      await container
+        .unmount(mount.name)
+        .mount(clone, mount.path, mount.name)
+        .update();
+    });
+
+    // "volume" is used in next tests, clone is not so remove it
     after(async () => {
+      await container.stop(true);
       await container.destroy();
+      await clone.destroy();
+    });
+
+    it('clones volume from other volume', async () => {
+      let download = await container.download(path.join(mount.path, file));
+      download.should.equal(string);
     })
   })
 

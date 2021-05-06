@@ -83,7 +83,7 @@ export default class Container extends Syncable {
       throw new Error(response.err);
     }
 
-    return this;
+    return this.load();
   }
 
   start() { return this.set_state('start', ...arguments); }
