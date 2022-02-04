@@ -625,7 +625,29 @@ describe('Container', () => {
     })
   })
 
-  describe('delete()', () => {
+  describe('publish()', () => {
+    let image;
+
+    after(() => {
+      // @TODO - tmp, make image deletion part of package
+      return lxd.async_operation().delete(`/images/${image.metadata.fingerprint}`);
+    })
+    it('does not publish running container', () => {
+      return container.publish().should.eventually.be.rejected;
+    })
+
+    it('publishes container as image', async function () {
+      this.timeout(30000);
+      await container.stop();
+      image = await container.publish();
+
+      image.status_code.should.equal(200);
+    })
+  })
+
+  describe('destroy()', () => {
+    before(() => container.start());
+
     it('does not delete running container', () => {
       container.destroy().should.be.rejected;
     });

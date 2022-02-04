@@ -65,7 +65,8 @@ export default class Container extends Syncable {
     let args = ['/instances', this.config];
 
     if(typeof this.target !== 'undefined') {
-      args.push({ target: this.target });
+      args.push({ target: this.target });    
+
     }
 
     // Create container
@@ -121,6 +122,20 @@ export default class Container extends Syncable {
     } else {
       return this;
     }
+  }
+
+  // Publish container as image
+  async publish() {
+    let body = {
+      aliases: [ { name: this.name() } ],
+      public: false,
+      source: {
+        type: 'container',
+        name: this.name(),
+      },
+    };
+
+    return this.client.async_operation().post('/images', body);
   }
 
   // Remove this container from LXD backend
