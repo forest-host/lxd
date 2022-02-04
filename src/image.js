@@ -16,12 +16,8 @@ export default class Image extends Syncable {
    * - primarily intented for tests
    */
   async by_alias(alias) {
-    try {
-      let res = await this.client.operation().get(`/images/aliases/${alias}`)
-      this.config.fingerprint = res.target;
-    } catch(err) {
-      throw err;
-    }
+    let res = await this.client.operation().get(`/images/aliases/${alias}`)
+    this.config.fingerprint = res.target;
 
     return this.load();
   }
