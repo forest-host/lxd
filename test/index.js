@@ -8,7 +8,7 @@ import chaiAsPromised from 'chai-as-promised';
 chai.should();
 chai.use(chaiAsPromised);
 
-import { LXD, Container, Volume, Snapshot } from '../src';
+import { LXD, Container, Image, Volume, Snapshot } from '../src';
 import { map_series } from '../src/util';
 
 // TODO - Split up tests to seperate files
@@ -76,7 +76,13 @@ var config = {
   volume: 'volume',
   clone: 'clone',
   snapshot: 'snapshot',
-  backup: 'backup'
+  backup: 'backup',
+  image: {
+    aliases: [{
+      name: 'lxd-test-image'
+    }],
+    profiles: [ 'default', 'lxd' ],
+  },
 };
 
 const lxd = new LXD(config.client);
@@ -92,6 +98,11 @@ const clean_up_failed_tests = async function() {
 
   try {
     await pool.get_volume(config.volume).destroy();
+  } catch(_) {}
+
+  try {
+    let image = await lxd.get_image().by_alias(config.image.aliases[0].name);
+    await image.destroy();
   } catch(_) {}
 }
 
@@ -340,6 +351,7 @@ describe('Backup', () => {
 
 describe('LXD Client', () => {
   let container = lxd.get_container(config.container.name);
+  let image = lxd.get_image();
 
   // Clean up previously failed tests
   before(function() { this.timeout(30000); return clean_up_failed_tests(); });
@@ -356,6 +368,12 @@ describe('LXD Client', () => {
       container.should.be.instanceOf(Container);
     });
   });
+
+  describe('get_image', () => {
+    it('Returns image instance', () => {
+      image.should.be.instanceOf(Image);
+    })
+  })
 });
 
 describe('Container', () => {
@@ -628,10 +646,8 @@ describe('Container', () => {
   describe('publish()', () => {
     let image;
 
-    after(() => {
-      // @TODO - tmp, make image deletion part of package
-      return lxd.async_operation().delete(`/images/${image.metadata.fingerprint}`);
-    })
+    after(() => image.destroy());
+
     it('does not publish running container', () => {
       return container.publish().should.eventually.be.rejected;
     })
@@ -641,7 +657,7 @@ describe('Container', () => {
       await container.stop();
       image = await container.publish();
 
-      image.status_code.should.equal(200);
+      image.should.be.instanceOf(Image);
     })
   })
 
@@ -660,6 +676,118 @@ describe('Container', () => {
       list.should.be.a('Array').that.not.contains(config.container.name);
     });
   });
+});
+
+describe('Image', () => {
+  let container = lxd.get_container(config.container.name).from_image_properties(config.container.image.os, config.container.image.release);
+  let image = lxd.get_image();
+
+  // Clean up previously failed tests
+  before(async function() {
+    this.timeout(30000);
+    await clean_up_failed_tests();
+    return container.create();
+  });
+  after(async () => {
+    //await container.stop();
+    return container.destroy()
+  });
+
+  describe('from_container()', () => {
+    it('sets container as source', () => {
+      image.from_container(container);
+      image.config.source.name.should.equal(config.container.name);
+    });
+  })
+
+  describe('set_aliases()', () => {
+    before(() => image.set_aliases(config.image.aliases));
+
+    it('sets aliases', () => {
+      image.config.aliases.should.equal(config.image.aliases);
+    })
+  })
+
+  describe('create()', () => {
+    before(async function () {
+      this.timeout(30000);
+      return image.create();
+    })
+
+    it('creates image', async () => {
+      return lxd.list_images()
+        .should.eventually.include(`/1.0/images/${image.name()}`);
+    })
+
+    it('Loads image config', () => {
+      image.is_synced.should.be.true;
+    })
+  })
+
+  describe('set_profiles()', () => {
+    before(() => image.set_profiles(config.image.profiles));
+
+    it('errors when image is not loaded / created', () => {
+      // Profiles can only be set after loading / creation (https://discuss.linuxcontainers.org/t/container-config-sticky-with-image/5782)
+      (() => lxd.get_image().set_profiles(config.image.profiles)).should.throw(Error);
+    })
+
+    it('sets profiles', () => {
+      image.config.profiles.should.eql(config.image.profiles);
+    })
+
+    it('unloads config', () => {
+      image.is_synced.should.false;
+    })
+  })
+
+  describe('update()', () => {
+    before(() => image.update());
+
+    it('updated image config', () => {
+      image.config.profiles.should.eql(config.image.profiles);
+    })
+
+    it('loads config', () => {
+      image.is_synced.should.be.true;
+    })
+  });
+
+
+  describe('load()', () => {
+    before(() => {
+      // Grab new instance while passing fingerprint to test loading existing images
+      image = lxd.get_image(image.config.fingerprint);
+      return image.load();
+    })
+
+    it('loads image config', () => {
+      image.is_synced.should.be.true;
+    });
+  })
+
+  describe('by_alias()', () => {
+    it('finds image by alias', async () => {
+      return lxd.get_image().by_alias(config.image.aliases[0].name)
+        .should.eventually.be.an('Object')
+        .that.has.property('config');
+    })
+  })
+
+  describe('destroy()', () => {
+    let fingerprint;
+    before(async () => {
+      fingerprint = image.name();
+      return image.destroy();
+    })
+
+    it('deletes image', async () => {
+      return lxd.list_images()
+        .should.eventually.be.a('Array')
+        .that.not.contains(`/1.0/images/${fingerprint}`);
+    })
+  })
+
 });
 
 // This test is here to test the event stash, as LXD was passing events before we were listening

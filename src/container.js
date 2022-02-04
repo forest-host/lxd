@@ -126,16 +126,7 @@ export default class Container extends Syncable {
 
   // Publish container as image
   async publish() {
-    let body = {
-      aliases: [ { name: this.name() } ],
-      public: false,
-      source: {
-        type: 'container',
-        name: this.name(),
-      },
-    };
-
-    return this.client.async_operation().post('/images', body);
+    return this.client.get_image().from_container(this).set_aliases([{ name: this.name() }]).create();
   }
 
   // Remove this container from LXD backend
