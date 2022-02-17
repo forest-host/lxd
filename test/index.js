@@ -155,7 +155,8 @@ describe('Volume', () => {
       name: 'volume',
     };
 
-    before(async () => {
+    before(async function () {
+      this.timeout(30000);
       // Create container that has volume mounted & upload something to volume so we can test cloning
       await container
         .mount(volume, mount.path, mount.name)
