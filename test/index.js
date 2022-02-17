@@ -407,7 +407,8 @@ describe('Container', () => {
   })
 
   describe('create()', () => {
-    before(() => {
+    before(function () {
+      this.timeout(30000);
       return container
         .mount(volume, '/test', 'test')
         .set_environment_variable(config.container.variable.key, config.container.variable.value)
@@ -658,6 +659,8 @@ describe('Container', () => {
       image = await container.publish();
 
       image.should.be.instanceOf(Image);
+      image.is_synced.should.equal(true);
+      image.config.aliases.should.deep.include.members([{ name: 'test', description: '' }]);
     })
   })
 

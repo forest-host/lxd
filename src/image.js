@@ -48,6 +48,8 @@ export default class Image extends Syncable {
     return this;
   }
 
+  // @TODO this only works on initial create
+  // to make this work on update it would be better to give aliases it's own interface
   set_aliases(aliases) {
     this.config.aliases = aliases;
     return this;
