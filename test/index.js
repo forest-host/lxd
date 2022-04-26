@@ -549,7 +549,7 @@ describe('Container', () => {
 
     it('Has access to environment variables', async () => {
       // We'll have to execute in shell to echo env variables
-      let { stdout } = await container.exec('/bin/sh', ['-c', `echo $${config.container.variable.key}`]);
+      let { stdout } = await container.exec('echo', [`$${config.container.variable.key}`], { shell: true });
       stdout[0].should.equal(config.container.variable.value);
     })
 

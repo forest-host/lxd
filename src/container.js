@@ -216,6 +216,12 @@ export default class Container extends Syncable {
     // It is possible to not pass `args`, so check if second argument to function is an array of arguments
     args = Array.isArray(arguments[1]) ? arguments[1] : [];
 
+    if('shell' in options && options.shell) {
+        // execute commands in shell if passed as option
+        args = ['-c', `${cmd} ${args.join(" ")}`];
+        cmd = '/bin/sh';
+    }
+
     // Run command with joined args on container
     let body = {
       command: [cmd, ...args],
