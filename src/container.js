@@ -209,11 +209,11 @@ export default class Container extends Syncable {
 
   // Execute command in container
   exec(cmd, args, options) {
-    // It is possible to not pass option so check last argument to see if it is a options object
+    // It is possible to not pass `args` so check last argument to see if it is a options object
     var last = arguments[arguments.length - 1];
     options = last === Object(last) ? last : {};
 
-    // It is possible to not pass arguments, so check if second argument to function is an array of arguments
+    // It is possible to not pass `args`, so check if second argument to function is an array of arguments
     args = Array.isArray(arguments[1]) ? arguments[1] : [];
 
     // Run command with joined args on container
