@@ -46,6 +46,7 @@ const config = {
     container: {
         name: 'test',
         image: 'testing',
+        profile: 'testing',
         variable: {
             key: 'TREE',
             value: 'Beech',
@@ -715,12 +716,12 @@ describe('Image', () => {
         })
     })
 
-    describe('set_profiles()', () => {
-        before(() => image.set_profiles(config.image.profiles));
+    describe('set_profile()', () => {
+        before(() => image.set_profile(...config.image.profiles));
 
         it('errors when image is not loaded / created', () => {
             // Profiles can only be set after loading / creation (https://discuss.linuxcontainers.org/t/container-config-sticky-with-image/5782)
-            (() => lxd.get_image().set_profiles(config.image.profiles)).should.throw(Error);
+            (() => lxd.get_image().set_profile(...config.image.profiles)).should.throw(Error);
         })
 
         it('sets profiles', () => {
