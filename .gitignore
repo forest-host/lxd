@@ -1,4 +1,4 @@
-/node_modules/
-/.eslintrc.json
-/test/keys
-/lib/
+node_modules/
+.eslintrc.json
+lib/
+.keys

@@ -1,0 +1,8 @@
+#!/bin/bash
+
+mkdir -p ./.keys
+# Generate key/cert for LXD client communication
+openssl req -nodes -x509 -new -newkey rsa:4096 -sha256 -days 3650 \
+    -keyout ./.keys/tests.key \
+    -out ./.keys/tests.crt \
+    -subj "/C=NL/ST=Utrecht/L=Utrecht/O=forest.host/CN=forest.host"

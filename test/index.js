@@ -44,8 +44,8 @@ BqXMFNdXRsJeBrAaLGw5GAyGMhSVJuABUWca+oHLpXsQ7xzHTqnfJQ==
 
 var config = {
   client: {
-    key: './test/keys/key.pem',
-    cert: './test/keys/cert.pem',
+    key: '.keys/tests.key',
+    cert: '.keys/tests.crt',
     port: '8443',
     host: '127.0.0.1',
   },
