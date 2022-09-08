@@ -42,12 +42,6 @@ export default class Container extends Syncable {
     return this;
   }
 
-  // Setup new container from source image with properties
-  from_image_properties(os, release, architecture = "amd64") {
-    this.config.source = { type: 'image', properties: { os, release, architecture }, };
-    return this;
-  }
-
   // Set lxd profiles container should use
   set_profiles(profiles) {
     this.config.profiles = profiles;
