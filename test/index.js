@@ -81,10 +81,10 @@ const pool = lxd.get_pool('default');
 
 const clean_up_failed_tests = async function() {
     try {
-        await container().stop();
+        await get_container().stop();
     } catch(_) {}
     try {
-        await container().destroy();
+        await get_container().destroy();
     } catch(_) {}
 
     try {
@@ -97,7 +97,7 @@ const clean_up_failed_tests = async function() {
     } catch(_) {}
 }
 
-async function container() {
+function get_container() {
     return lxd
         .get_container(config.container.name)
         .from_image(config.container.image)
@@ -124,7 +124,7 @@ describe('Pool', () => {
 });
 
 describe('Volume', () => {
-    let container = container()
+    let container = get_container()
     let volume = pool.get_volume(config.volume);
 
     // Clean up failed previous runs
@@ -216,7 +216,7 @@ describe('Volume', () => {
 })
 
 describe('Snapshot', () => {
-    let container = container()
+    let container = get_container()
     let volume = pool.get_volume(config.volume);
     let snapshot = volume.get_snapshot(config.snapshot);
 
@@ -361,7 +361,7 @@ describe('LXD Client', () => {
 
     describe('get_container()', () => {
         it('Returns container instance', () => {
-            let container = container()
+            let container = get_container()
             container.should.be.instanceOf(Container);
         });
     });
@@ -375,7 +375,7 @@ describe('LXD Client', () => {
 });
 
 describe('Container', () => {
-    let container = container();
+    let container = get_container();
     let volume = pool.get_volume(config.volume);
 
     // Clean up previously failed tests
@@ -388,7 +388,7 @@ describe('Container', () => {
 
     describe('from_image()', () => {
         it('Sets image source with alias', () => {
-            // from_image is called in the container() function
+            // from_image is called in the get_container() function
             container.config.source.alias.should.not.be.undefined;
         })
     });
@@ -673,7 +673,7 @@ describe('Container', () => {
 });
 
 describe('Image', () => {
-    let container = container()
+    let container = get_container()
     let image = lxd.get_image();
 
     // Clean up previously failed tests
@@ -788,7 +788,7 @@ describe('Image', () => {
 describe('Destroying container after creating it', () => {
     it('Returns', async function() {
         this.timeout(30000);
-        let container = await container().create();
+        let container = await get_container().create();
 
         try {
             await container.stop();
