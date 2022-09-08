@@ -134,7 +134,7 @@ export default class Container extends Syncable {
     // Force destruction on container
     async force_destroy() {
         try { await this.stop(); } catch(e) {
-            console.log('could not stop container')
+            console.log(e.message)
         }
         try { await this.destroy(); } catch(_) {
             // TODO - only allow not found error

@@ -45,6 +45,7 @@ const clean = async function() {
     } catch(_) {}
 }
 
+/*
 describe('LXD Client', () => {
     describe('list()', () => {
         it('Responds with a array', async () => {
@@ -83,7 +84,6 @@ describe('Pool', () => {
     })
 });
 
-/*
 describe('Volume', () => {
     afterEach(clean)
 
@@ -289,6 +289,7 @@ describe('Backup', () => {
 describe('Container', () => {
     afterEach(clean)
 
+    /*
     describe('from_image()', () => {
         it('Sets image source with alias', () => {
             let container = lxd.get_container('test').from_image('testing')
@@ -314,9 +315,11 @@ describe('Container', () => {
             return container.destroy()
         });
     })
+    */
 
     describe('set_state()', () => {
-        it('Changes container state', async () => {
+        it('Changes container state', async function() {
+            this.timeout(30000)
             let container = await create_container()
             await container.set_state('start');
 
@@ -327,6 +330,7 @@ describe('Container', () => {
         })
     })
 
+    /*
     describe('wait_for_dhcp_lease()', () => {
         it('Waits for dhcp lease', async function() {
             this.timeout(10000);
@@ -563,4 +567,5 @@ describe('Image', () => {
             list.should.not.contain(`/1.0/images/${image.name()}`);
         })
     })
+    */
 });

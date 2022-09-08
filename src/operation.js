@@ -86,7 +86,6 @@ export class AsyncOperation extends Operation {
 
         try {
             let metadata = await super.request(...arguments);
-            console.log(metadata)
             let output = await this.process_operation(metadata, stash);
 
             return output;
