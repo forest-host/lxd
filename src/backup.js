@@ -17,11 +17,6 @@ export default class Backup extends Syncable {
     return this.set_synced(false);
   }
 
-  set_expires_at(expires_at) {
-    this.config.expires_at = expires_at;
-    return this;
-  }
-
   url() {
     return `${this.volume.url()}/backups/${this.name()}`;
   }

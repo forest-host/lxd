@@ -11,15 +11,8 @@ export default class Image extends Syncable {
         return this.config.fingerprint;
     }
 
-    /**
-     * Find image by alias
-     * - primarily intented for tests
-     */
-    async by_alias(alias) {
-        let res = await this.client.operation().get(`/images/aliases/${alias}`)
-        this.config.fingerprint = res.target;
-
-        return this.load();
+    aliases() {
+        return this.config.aliases
     }
 
     set_default_config(fingerprint = null) {
@@ -52,21 +45,6 @@ export default class Image extends Syncable {
     // to make this work on update it would be better to give aliases it's own interface
     set_aliases(aliases) {
         this.config.aliases = aliases;
-        return this;
-    }
-
-    /**
-     * Note: profiles can only be set AFTER image is created 
-     * (https://discuss.linuxcontainers.org/t/container-config-sticky-with-image/5782)
-     * @important Call update() on this image to update
-     */
-    set_profile() {
-        if( ! this.is_synced) {
-            throw new Error('Profiles can only be set after image creation');
-        }
-
-        this.config.profiles = Array.from(arguments);
-        this.is_synced = false;
         return this;
     }
 

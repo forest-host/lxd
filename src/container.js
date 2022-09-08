@@ -60,11 +60,11 @@ export default class Container extends Syncable {
 
         if(typeof this.target !== 'undefined') {
             args.push({ target: this.target });
-
         }
 
         // Create container
         let res = await this.client.async_operation().post(...args)
+
         return this.load();
     }
 
@@ -131,11 +131,20 @@ export default class Container extends Syncable {
         return this;
     }
 
-    // Low level update for container config
-    async patch(body) {
-        let response = await this.client.operation().patch(this.url(), body);
-        return this.load();
+    // Force destruction on container
+    async force_destroy() {
+        try { await this.stop(); } catch(e) {
+            console.log('could not stop container')
+        }
+        try { await this.destroy(); } catch(_) {
+            // TODO - only allow not found error
+            console.log('could not destroy container')
+        }
+
+        return this
     }
+
+    // Low level update for container config
     async put(body) {
         let response = await this.client.async_operation().put(this.url(), body);
         return this.load();
@@ -165,21 +174,13 @@ export default class Container extends Syncable {
 
     // Mount LXD volume or host path in this container at container path
     // @important Call update() on this container to update LXD container
-    // TODO - Check if container_path is unique? LXD probably does this aswell, test for this?
-    mount(volume_or_host_path, container_path, device_name) {
-        this.config.devices[device_name] = {
-            path: container_path,
+    mount(volume, path, device_name) {
+        this.config.devices[device_name] = { 
+            path, 
             type: 'disk',
+            source: volume.name(),
+            pool: volume.pool.name(),
         };
-
-        if(volume_or_host_path instanceof Volume) {
-            this.config.devices[device_name].source = volume_or_host_path.name();
-            this.config.devices[device_name].pool = volume_or_host_path.pool.name();
-        } else if(typeof(volume_or_host_path) === 'string') {
-            this.config.devices[device_name].source = volume_or_host_path;
-        } else {
-            throw new Error('Only volumes or host paths can be mounted')
-        }
 
         return this.set_synced(false);
     }
