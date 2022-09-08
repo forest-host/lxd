@@ -1,0 +1,13 @@
+name: testing
+config:
+  boot.autostart: "false"
+  security.secureboot: "false"
+description: Profile used by the node LXD module tests
+devices:
+  root:
+    path: /
+    pool: default
+    type: disk
+  eth0:
+    network: internal
+    type: nic
