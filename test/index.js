@@ -45,7 +45,7 @@ BqXMFNdXRsJeBrAaLGw5GAyGMhSVJuABUWca+oHLpXsQ7xzHTqnfJQ==
 const config = {
     container: {
         name: 'test',
-        image: 'alpine/edge',
+        image: 'testing',
         variable: {
             key: 'TREE',
             value: 'Beech',
