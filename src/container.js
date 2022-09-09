@@ -79,31 +79,24 @@ export default class Container extends Syncable {
     start() { return this.set_state('start', ...arguments); }
     stop() { return this.set_state('stop', ...arguments); }
     restart() { return this.set_state('restart', ...arguments); }
-    freeze() { return this.set_state('freeze', ...arguments); }
-    unfreeze() { return this.set_state('unfreeze', ...arguments); }
 
     get_state() {
         return this.client.operation().get(`${this.url()}/state`);
     }
 
-    // TODO - Make this general IPV4 & IPV6 logic
     async get_ipv4_addresses() {
         let state = await this.get_state();
-
-        return state.network.eth0.addresses.filter(address => {
-            return address.family == 'inet';
-        });
+        return state.network.eth0.addresses.filter(address => address.family == 'inet');
     }
 
     // Wait a bit for network address, DHCP servers can be sloooooooooow
     async wait_for_dhcp_lease(retries = 0) {
-        // Keep trying for 30 seconds
+        // Keep trying for 30 (60 * 500ms) seconds
         if(retries >= 60) {
             throw new Error('Container could not get dhcp lease');
         }
 
-        let addresses = await this.get_ipv4_addresses();
-
+        let addresses = await this.get_ipv4_addresses()
         if( ! addresses.length) {
             // Wait for 500 ms, then try again
             await new Promise((resolve) => setTimeout(resolve, 500));
