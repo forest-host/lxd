@@ -41,7 +41,6 @@ describe('Container', () => {
             
             let list = await lxd.list()
             list.should.contain(container.name());
-            container.is_synced.should.equal(true);
 
             return container.destroy()
         });

@@ -28,7 +28,6 @@ describe('Backup', () => {
             backup.unload()
             await backup.load();
             backup.name().should.equal(name);
-            backup.is_synced.should.equal(true);
 
             await volume.destroy()
         });
@@ -48,7 +47,6 @@ describe('Backup', () => {
 
             let list = await volume.list_backups();
             list.should.not.contain(name);
-            backup.is_synced.should.equal(false);
 
             await volume.destroy()
         });

@@ -20,7 +20,6 @@ describe('Volume', () => {
             let volume = await create_volume()
             let list = await get_pool().list();
             list.should.contain(volume.name());
-            volume.is_synced.should.equal(true);
             await volume.destroy()
         })
     })
@@ -46,7 +45,7 @@ describe('Volume', () => {
             await container.force_destroy()
 
             // Create a clone & remove original
-            let clone = await get_volume('clone').clone_from(volume).create()
+            let clone = await get_volume('clone').clone_from(volume)
             await volume.destroy();
 
             // Mount clone to fetch file
@@ -67,7 +66,6 @@ describe('Volume', () => {
             await volume.load();
 
             volume.name().should.equal('name');
-            volume.is_synced.should.equal(true);
 
             await volume.destroy()
         })
@@ -80,7 +78,6 @@ describe('Volume', () => {
             let list = await get_pool().list();
 
             list.should.not.contain(volume.name());
-            volume.is_synced.should.equal(false);
         });
     })
 

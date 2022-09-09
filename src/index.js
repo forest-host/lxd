@@ -6,11 +6,11 @@ import Snapshot from './snapshot';
 import Backup from './backup';
 
 export {
-  Client as LXD,
-  Container,
-  Volume,
-  Snapshot,
-  Backup,
+    Client as LXD,
+    Container,
+    Volume,
+    Snapshot,
+    Backup,
 }
 
 export default Client;

@@ -30,7 +30,6 @@ describe('Snapshot', () => {
             snapshot.unload();
             await snapshot.load();
             snapshot.name().should.equal('snap');
-            snapshot.is_synced.should.equal(true);
 
             await volume.destroy()
         });
@@ -74,7 +73,6 @@ describe('Snapshot', () => {
 
             let list = await volume.list_snapshots();
             list.should.not.contain(name);
-            snapshot.is_synced.should.equal(false);
 
             await volume.destroy()
         });

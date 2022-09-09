@@ -1,13 +1,13 @@
 
 import path from 'path';
 
-import Syncable from './syncable';
+import Model from './model';
 import Snapshot from './snapshot';
 import Backup from './backup';
 
-export default class Volume extends Syncable {
+export default class Volume extends Model {
     constructor(pool, name) {
-        super(pool.client, name);
+        super(pool.client, { name });
         this.pool = pool;
     }
 
@@ -27,10 +27,6 @@ export default class Volume extends Syncable {
 
     // Clone from other volume on creating this volume
     clone_from(source, volume_only = true) {
-        if(this.is_synced) {
-            throw new Error('Volumes can only be cloned on creation');
-        }
-
         this.config.source = {
             name: source.name(),
             pool: source.pool.name(),
@@ -39,7 +35,7 @@ export default class Volume extends Syncable {
             volume_only,
         };
 
-        return this;
+        return this.create();
     }
 
     get_snapshot(name) {

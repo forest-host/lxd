@@ -1,23 +1,18 @@
 
 import { Readable as readable } from 'stream';
 import Volume from './volume';
-import Syncable from './syncable';
+import Model from './model';
 
-export default class Container extends Syncable {
+export default class Container extends Model {
     constructor(client, name) {
-        super(client, name);
-    }
-
-    set_default_config(name) {
-        this.config = {
+        return super(client, {
             name,
             architecture: 'x86_64',
             profiles: ['default'],
             ephemeral: false,
             devices: {},
             config: {},
-        };
-        return this.set_synced(false);
+        });
     }
 
     url() {
@@ -136,13 +131,13 @@ export default class Container extends Syncable {
     // Set LXD container config directive
     set_config(key, value) {
         this.config.config[key] = value;
-        return this.set_synced(false);
+        return this
     }
 
     // Unset LXD container config directive
     unset_config(key) {
         delete this.config.config[key];
-        return this.set_synced(false);
+        return this
     }
 
     // Set environment variable in container
@@ -164,8 +159,7 @@ export default class Container extends Syncable {
             source: volume.name(),
             pool: volume.pool.name(),
         };
-
-        return this.set_synced(false);
+        return this
     }
 
     // Unmount device
@@ -176,7 +170,7 @@ export default class Container extends Syncable {
         }
 
         delete this.config.devices[device_name];
-        return this.set_synced(false);
+        return this
     }
 
     // Update containers config in LXD with current local container config
