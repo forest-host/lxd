@@ -32,11 +32,6 @@ export default class Container extends Syncable {
     }
 
     // Setup new container from source image with alias
-    // like {
-    //   properties: { os:"alpine", release:"3.12", architecture:"amd64" },
-    // } or {
-    //   alias:"php_release_7_4",
-    // }
     from_image(alias) {
         this.config.source = { type: 'image', alias, };
         return this;
@@ -118,11 +113,6 @@ export default class Container extends Syncable {
         }
     }
 
-    // Publish container as image
-    async publish(aliases = [{ name: this.name() }]) {
-        return this.client.get_image().from_container(this).set_aliases(aliases).create();
-    }
-
     // Remove this container from LXD backend
     async destroy() {
         await this.client.async_operation().delete(this.url());
@@ -133,7 +123,7 @@ export default class Container extends Syncable {
 
     // Force destruction on container
     async force_destroy() {
-        try { await this.stop(); } catch(e) {
+        try { await this.stop(true); } catch(e) {
             console.log(e.message)
         }
         try { await this.destroy(); } catch(_) {

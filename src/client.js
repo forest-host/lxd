@@ -7,7 +7,6 @@ import WebSocket from 'ws';
 
 import { AsyncOperation, Operation } from './operation';
 import Container from './container';
-import Image from './image';
 import Pool from './pool';
 import { map_series, wait_for_socket_open } from './util';
 
@@ -80,15 +79,6 @@ export default class Client {
     // Get LXD container representation
     get_container(name) {
         return new Container(this, name);
-    }
-
-    get_image(fingerprint = null) {
-        return new Image(this, fingerprint);
-    }
-
-    // Get list of images
-    async list_images() {
-        return this.operation().get('/images');
     }
 
     // Get list of containers
