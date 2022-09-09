@@ -21,6 +21,7 @@ import {
 describe('Container', () => {
     afterEach(clean_container)
 
+    /*
     describe('from_image()', () => {
         it('Sets image source with alias', () => {
             let container = lxd.get_container('test').from_image('testing')
@@ -108,8 +109,8 @@ describe('Container', () => {
             await volume.destroy()
         });
     })
-
-    /*
+    */
+    
     describe('exec()', () => {
         it('Executes command in container', async () => {
             let multiline = fs.readFileSync('./test/test.key').toString()
@@ -122,6 +123,7 @@ describe('Container', () => {
             ({ stdout } = await container.exec('hostname'))
             stdout[0].should.contain(container.name())
 
+            /*
             ({ stdout } = await container.exec('pwd'))
             stdout[0].should.equal('/root')
 
@@ -169,12 +171,13 @@ describe('Container', () => {
 
             let { status } = await container.exec('rm', ['/not/existing/directory'])
             status.should.equal(1);
+            */
 
             await container.force_destroy()
         });
     });
-    */
 
+    /*
     describe('upload_string()', () => {
         it('Uploads a string to a file in container', async () => {
             let string = 'hey there'
@@ -230,4 +233,5 @@ describe('Container', () => {
             list.should.not.contain(container.name())
         });
     });
+    */
 });

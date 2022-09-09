@@ -46,6 +46,7 @@ export default class Container extends Model {
 
     // Create this container on LXD backend
     async create() {
+        console.log(`${Date.now()} create`)
         let args = ['/instances', this.config];
 
         if(typeof this.target !== 'undefined') {
@@ -60,6 +61,7 @@ export default class Container extends Model {
 
     // (stop, start, restart, freeze or unfreeze)
     async set_state(action, force = false, timeout = 60, stateful = false) {
+        console.log(`${Date.now()} set state ${action}`)
         // create container request
         let operation = this.client.async_operation()
         let response = await operation.put(`${this.url()}/state`, { action, timeout, force, stateful })
@@ -181,6 +183,7 @@ export default class Container extends Model {
 
     // Execute command in container
     exec(cmd, args, options) {
+        console.log(`${Date.now()} exec`)
         // It is possible to not pass `args` so check last argument to see if it is a options object
         var last = arguments[arguments.length - 1];
         options = last === Object(last) ? last : {};
