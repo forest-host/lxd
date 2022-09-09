@@ -21,7 +21,6 @@ import {
 describe('Container', () => {
     afterEach(clean_container)
 
-    /*
     describe('from_image()', () => {
         it('Sets image source with alias', () => {
             let container = lxd.get_container('test').from_image('testing')
@@ -109,7 +108,6 @@ describe('Container', () => {
             await volume.destroy()
         });
     })
-    */
     
     describe('exec()', () => {
         it('Executes command in container', async function() {
@@ -147,7 +145,6 @@ describe('Container', () => {
         });
     });
 
-    /*
     describe('upload_string()', () => {
         it('Uploads a string to a file in container', async () => {
             let string = 'hey there'
@@ -203,5 +200,4 @@ describe('Container', () => {
             list.should.not.contain(container.name())
         });
     });
-    */
 });
