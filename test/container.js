@@ -112,7 +112,8 @@ describe('Container', () => {
     */
     
     describe('exec()', () => {
-        it('Executes command in container', async () => {
+        it('Executes command in container', async function() {
+            this.timeout(30000)
             let multiline = fs.readFileSync('./test/test.key').toString()
             let container = await get_container()
                 .set_environment_variable('TREE_HOST', 'Birch')
@@ -120,58 +121,27 @@ describe('Container', () => {
                 .create()
             await container.start()
 
-            ({ stdout } = await container.exec('hostname'))
-            stdout[0].should.contain(container.name())
+            let result = await container.exec('hostname')
+            result.stdout[0].should.contain(container.name());
 
-            /*
-            ({ stdout } = await container.exec('pwd'))
-            stdout[0].should.equal('/root')
+            result = await container.exec('pwd')
+            result.stdout[0].should.equal('/root')
 
             let cwd = '/etc';
-            ({ stdout } = await container.exec('pwd', { cwd }))
-            stdout[0].should.equal(cwd);
+            result = await container.exec('pwd', { cwd })
+            result.stdout[0].should.equal(cwd);
 
             // We'll have to execute in shell to echo env variables
-            ({ stdout } = await container.exec('echo', ['$TREE_HOST'], { shell: true }))
-            stdout[0].should.equal('Birch');
+            result  = await container.exec('sh', ['-c', 'echo $TREE_HOST'])
+            result.stdout[0].should.equal('Birch');
 
-            ({ stdout } = await container.exec('echo', ['$MULTILINE'], { shell: true }))
-            stdout[0].should.equal(multiline);
+            throw new Error('Do we even use multiline variables?')
+            result = await container.exec('sh', ['-c', 'echo $MULTILINE'])
+            console.log(result.stdout)
+            result.stdout[0].should.equal(multiline);
 
-            // Timeout is in millis
-            ({ status, stdout } = await container.exec('sleep', ['300'], { timeout: 100 }))
-            stdout.should.have.length(0);
-            status.should.be.above(0);
-
-            let sockets = await container.exec('echo', ['test'], { interactive: true })
-            let messages = [];
-
-            sockets.should.have.property('control');
-            sockets.should.have.property('0');
-
-            // See if output matches
-            sockets['1'].on('message', data => {
-                var string = data.toString('utf8').trim();
-
-                // Push strings onto output array, seperated by newline, use apply so we can pass split string as arguments to push
-                if(string) {
-                    messages.push.apply(messages, string.split('\n'));
-                }
-            });
-
-            await new Promise(resolve => {
-                // When control closes, run tests
-                sockets.control.on('close', () => {
-                    // When control closes, we need to close the stdin/stdout socket
-                    ['0', '1', '2'].forEach(key => sockets[key].close());
-                    messages.map(m => m.toString().should.contain('test'))
-                    resolve();
-                });
-            })
-
-            let { status } = await container.exec('rm', ['/not/existing/directory'])
-            status.should.equal(1);
-            */
+            result = await container.exec('rm', ['/not/existing/directory'])
+            result.status.should.equal(1);
 
             await container.force_destroy()
         });

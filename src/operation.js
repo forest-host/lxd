@@ -62,18 +62,6 @@ export class Operation {
 export class AsyncOperation extends Operation {
     constructor(client, url) {
         super(client, url);
-        this.interactive = false;
-        this.timeout = 0;
-    }
-
-    // Make this operation an interactive operation (used to return websockets directly)
-    make_interactive() {
-        this.interactive = true;
-    }
-
-    // Timeout this async operation (used to cancel exec operations)
-    timeout_after(millis) {
-        this.timeout = millis;
     }
 
     // Override operation request method to wait for operation updates over global events socket
@@ -149,17 +137,12 @@ export class AsyncOperation extends Operation {
         // Create one object from all the small ones
         sockets = Object.assign(...sockets);
 
-        // It is possible to pass interactive to config
-        if(this.interactive) {
-            return Promise.resolve(sockets);
-        } else {
-            return this.finalize_websocket_operation(sockets, metadata);
-        }
+        return this.finalize_websocket_operation(sockets, metadata);
     }
 
-    // Finalize websocket operation, collecting data from sockets or returning them directly based on "interactive" bool
+    // Finalize websocket operation, collecting data from sockets
     async finalize_websocket_operation(sockets, metadata) {
-        var result = {
+        let result = {
             stdout: [],
             stderr: [],
         };
@@ -178,32 +161,16 @@ export class AsyncOperation extends Operation {
             });
         }
 
-
         let output = await new Promise((resolve, reject) => {
             // We do not want to run commands longer than 10 minutes, send kill signal after that
-            if(this.timeout > 0) {
-                var timeout = setTimeout(() => {
-                    sockets.control.send(JSON.stringify({
-                        command: "signal",
-                        signal: 15
-                    }));
-                }, this.timeout);
-            }
-
             Object.keys(sockets).forEach(socket => {
                 sockets[socket].on('error', () => {
                     reject(new Error('Socket returned error'));
                 });
             });
 
-
             // Control socket closes when done executing, we will have to close the other sockets manually after control closes
             sockets.control.on('close', () => {
-                // Clear timeout as we can not send control signals through closed socket
-                if(this.timeout > 0) {
-                    clearTimeout(timeout);
-                }
-
                 // When control closes, we can safely close the stdin/stdout socket
                 ['0', '1', '2'].forEach(key => sockets[key].close());
                 resolve(result);
@@ -217,6 +184,7 @@ export class AsyncOperation extends Operation {
     }
 
     // Get exit code of exec command operation
+    // TODO - look at this retry/time-out logic, it feels error prone
     async get_exit_code(metadata, retries = 0, timeout = 500) {
         // After getting output from sockets we need to get the statuscode from the operation
         let response = await super.request('GET', `/operations/${metadata.id}`);

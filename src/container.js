@@ -46,7 +46,6 @@ export default class Container extends Model {
 
     // Create this container on LXD backend
     async create() {
-        console.log(`${Date.now()} create`)
         let args = ['/instances', this.config];
 
         if(typeof this.target !== 'undefined') {
@@ -60,8 +59,7 @@ export default class Container extends Model {
     }
 
     // (stop, start, restart, freeze or unfreeze)
-    async set_state(action, force = false, timeout = 60, stateful = false) {
-        console.log(`${Date.now()} set state ${action}`)
+    async set_state(action, force = false, timeout = -1, stateful = false) {
         // create container request
         let operation = this.client.async_operation()
         let response = await operation.put(`${this.url()}/state`, { action, timeout, force, stateful })
@@ -183,43 +181,23 @@ export default class Container extends Model {
 
     // Execute command in container
     exec(cmd, args, options) {
-        console.log(`${Date.now()} exec`)
         // It is possible to not pass `args` so check last argument to see if it is a options object
-        var last = arguments[arguments.length - 1];
+        let last = arguments[arguments.length - 1];
         options = last === Object(last) ? last : {};
 
         // It is possible to not pass `args`, so check if second argument to function is an array of arguments
         args = Array.isArray(arguments[1]) ? arguments[1] : [];
 
-        if('shell' in options && options.shell) {
-            // execute commands in shell if passed as option
-            args = ['-c', `${cmd} ${args.join(" ")}`];
-            cmd = '/bin/sh';
-        }
-
         // Run command with joined args on container
         let body = {
             command: [cmd, ...args],
-            environment: options.environment || {},
             'wait-for-websocket': true,
             interactive: false,
+            ...options,
         };
 
-        // Change directory when it was set as option
-        if(options.hasOwnProperty('cwd')) {
-            body.cwd = options.cwd;
-        }
-
         // Create exec operation
-        let operation = this.client.async_operation();
-        if(typeof(options.interactive) === 'boolean' && options.interactive) {
-            operation.make_interactive();
-        }
-        if(typeof(options.timeout) === 'number') {
-            operation.timeout_after(options.timeout);
-        }
-
-        return operation.post(`${this.url()}/exec`, body);
+        return this.client.async_operation().post(`${this.url()}/exec`, body);
     }
 
     // Upload string to file in container
