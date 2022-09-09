@@ -2,16 +2,18 @@
 import chai from 'chai';
 chai.should();
 
-import path from 'path';
+import { Snapshot } from '../src'
 import { 
-    clean,
+    clean_volume,
+    clean_container,
+    get_pool,
     get_volume,
     create_volume,
-    create_container 
+    get_container,
 } from './'
 
 describe('Volume', () => {
-    afterEach(clean)
+    afterEach(clean_volume)
 
     describe('create()', () => {
         it('Creates new storage volume', async () => {
@@ -24,33 +26,37 @@ describe('Volume', () => {
     })
 
     describe('clone_from()', () => {
+        afterEach(function() { 
+            return clean_volume.apply(this, ['clone']) 
+                .then(() => clean_container.apply(this))
+        })
+
         it('clones volume from other volume', async function() {
             this.timeout(30000);
 
             let string = 'this is a string\n';
-            let file = 'test.txt';
-            let mount = {
-                path: '/volume',
-                name: 'volume',
-            };
+            let mount = { path: '/test', name: 'volume' };
+            let path = '/test/test.txt';
 
             let volume = await create_volume()
             // Create container that has volume mounted & upload something to volume so we can test cloning
-            //let container = await get_container().mount(volume, mount.path, mount.name).create();
-            let container = await create_container()
+            let container = await get_container().mount(volume, mount.path, mount.name).create();
             await container.start()
-            //await container.upload_string(string, path.join(mount.path, file));
-            //await container.destroy();
+            await container.upload_string(string, path);
+            await container.force_destroy()
 
-            // Create a clone & mount it instead of origin volume
-            //let clone = await get_volume('clone').clone_from(volume).create()
-            //container = await get_container().mount(clone, mount.path, mount.name).create();
-            //let download = await container.download(path.join(mount.path, file));
-            //download.should.equal(string);
+            // Create a clone & remove original
+            let clone = await get_volume('clone').clone_from(volume).create()
+            await volume.destroy();
+
+            // Mount clone to fetch file
+            container = await get_container().mount(clone, mount.path, mount.name).create();
+            await container.start()
+            let download = await container.download(path);
+            download.should.equal(string);
 
             await container.force_destroy()
-            //await clone.destroy();
-            await volume.destroy();
+            await clone.destroy();
         })
     })
 

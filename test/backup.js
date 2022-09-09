@@ -1,11 +1,11 @@
 
 import {
-    clean,
+    clean_volume,
     create_volume,
 } from './'
 
 describe('Backup', () => {
-    afterEach(clean)
+    afterEach(clean_volume)
 
     describe('create()', () => {
         it('Creates backup', async () => {

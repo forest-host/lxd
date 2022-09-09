@@ -1,12 +1,13 @@
 
 import {
-    clean,
+    clean_volume,
+    clean_container,
     create_volume,
     get_container,
 } from './'
 
 describe('Snapshot', () => {
-    afterEach(clean)
+    afterEach(clean_volume)
 
     describe('create()', () => {
         it('Creates snapshot', async () => {
@@ -39,6 +40,8 @@ describe('Snapshot', () => {
     // So for now, use a container & mounted volume to test this logic
     // Also, this depends on the snapshot create test above
     describe('restore()', () => {
+        afterEach(clean_container)
+
         it('restores volume to snapshot', async function() {
             this.timeout(30000);
             let file_name = '/test/rollback.txt';

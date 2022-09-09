@@ -9,6 +9,7 @@ import fs from 'fs';
 
 import { 
     clean_container,
+    clean_volume,
     lxd,
     get_container,
     create_container,
@@ -92,6 +93,8 @@ describe('Container', () => {
     })
 
     describe('update()', () => {
+        afterEach(clean_volume)
+
         it('Updates config of container in LXD with local config', async () => {
             let [volume, container] = await Promise.all([create_volume(), create_container()])
             await container
@@ -103,6 +106,7 @@ describe('Container', () => {
             container.config.devices.test.source.should.equal(volume.name());
 
             await container.destroy()
+            await volume.destroy()
         });
     })
 
@@ -220,7 +224,7 @@ describe('Container', () => {
         
             await assert.isRejected(container.destroy())
 
-            await container.stop();
+            await container.stop(true);
             await container.destroy()
 
             let list = await lxd.list();
