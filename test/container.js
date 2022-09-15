@@ -117,33 +117,25 @@ describe('Container', () => {
     describe('exec()', () => {
         it('Executes command in container', async function() {
             this.timeout(30000)
-            let multiline = fs.readFileSync('./test/test.key').toString()
             let container = await get_container()
                 .set_environment_variable('TREE_HOST', 'Birch')
-                .set_environment_variable('MULTILINE', multiline)
                 .create()
             await container.start()
 
-            let result = await container.exec('hostname')
+            let result = await container.exec({ command: ['hostname'] })
             result.stdout[0].should.contain(container.name);
 
-            result = await container.exec('pwd')
+            result = await container.exec({ command: ['pwd'] })
             result.stdout[0].should.equal('/root')
 
-            let cwd = '/etc';
-            result = await container.exec('pwd', { cwd })
-            result.stdout[0].should.equal(cwd);
+            result = await container.exec({ command: ['pwd'], cwd: '/etc' })
+            result.stdout[0].should.equal('/etc');
 
             // We'll have to execute in shell to echo env variables
-            result  = await container.exec('sh', ['-c', 'echo $TREE_HOST'])
+            result  = await container.exec({ command: ['sh', '-c', 'echo $TREE_HOST'] })
             result.stdout[0].should.equal('Birch');
 
-            throw new Error('Do we even use multiline variables?')
-            result = await container.exec('sh', ['-c', 'echo $MULTILINE'])
-            console.log(result.stdout)
-            result.stdout[0].should.equal(multiline);
-
-            result = await container.exec('rm', ['/not/existing/directory'])
+            result = await container.exec({ command: ['rm', '/not/existing/directory'] })
             result.status.should.equal(1);
 
             await container.force_destroy()

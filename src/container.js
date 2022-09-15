@@ -210,24 +210,31 @@ export default class Container extends Model {
     }
 
     // Execute command in container
-    exec(cmd, args, options) {
-        // It is possible to not pass `args` so check last argument to see if it is a options object
-        let last = arguments[arguments.length - 1];
-        options = last === Object(last) ? last : {};
-
-        // It is possible to not pass `args`, so check if second argument to function is an array of arguments
-        args = Array.isArray(arguments[1]) ? arguments[1] : [];
+    async exec({ command = [] } = {}) {
+        // Valid command?
+        if ( ! Array.isArray(config.command) || config.command.length == 0 ) {
+            throw new Error('No command in arguments')
+        }
 
         // Run command with joined args on container
-        let body = {
-            command: [cmd, ...args],
+        let defaults = {
             'wait-for-websocket': true,
             interactive: false,
-            ...options,
         };
 
         // Create exec operation
-        return this.client.async_operation().post(`${this.url}/exec`, body);
+        let operation = await this.client.start_operation({
+            method: 'POST',
+            url: `${this.url}/exec`,
+            json: {
+                command,
+                ...defaults,
+            },
+        })
+
+        console.log(operation)
+    
+        // TODO - Websocket stuff
     }
 
     // Upload string to file in container
