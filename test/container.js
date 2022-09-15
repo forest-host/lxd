@@ -40,7 +40,6 @@ describe('Container', () => {
             let container = await create_container()
 
             let list = await lxd.list()
-            console.log(container)
             list.should.contain(container.name);
 
             return container.destroy()

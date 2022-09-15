@@ -1,8 +1,9 @@
 
 import path from 'path';
-import Volume from './volume.js';
+import Volume from './volume.js'
+import Model from './model.js'
 
-class Pool {
+class Pool extends Model {
     constructor(client, name) {
         super(client, { name })
     }
