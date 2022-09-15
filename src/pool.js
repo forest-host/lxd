@@ -9,12 +9,12 @@ class Pool extends Model {
     }
 
     get url() {
-        return '/storage-pools/' + this.name + '/volumes/custom';
+        return 'storage-pools/' + this.name + '/volumes/custom';
     }
 
     async list() {
         // Get custom volumes
-        let list = await this.client.operation().get(this.url);
+        let list = await this.client.request({ url: this.url, }).json()
 
         // Only get volume names
         return list.map(uri => path.basename(uri));

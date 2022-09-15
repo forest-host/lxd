@@ -15,18 +15,35 @@ export default class Volume extends Model {
         return `${this.pool.url}/${this.name}`
     }
 
-    async create() {
-        await this.client.operation().post(this.pool.url, this.config);
-        return this.load();
+    async create({ wait = true } = {}) {
+        let operation = await this.client.start_operation({
+            method: 'POST',
+            url: this.pool.url,
+            json: this.config
+        })
+
+        if(wait) {
+            await operation.wait()
+        }
+
+        return this
     }
 
-    async destroy() {
-        await this.client.operation().delete(this.url);
-        return this.unload();
+    async destroy({ wait = true } = {}) {
+        let operation = await this.client.start_operation({
+            method: 'DELETE',
+            url: this.url
+        })
+
+        if(wait) {
+            await operation.wait()
+        }
+
+        return this
     }
 
     // Clone from other volume on creating this volume
-    clone_from(source, volume_only = true) {
+    clone_from({ source, volume_only = true, wait = true } = {}) {
         this.config.source = {
             name: source.name,
             pool: source.pool.name,
@@ -43,7 +60,7 @@ export default class Volume extends Model {
     }
 
     async list_snapshots() {
-        let list = await this.pool.client.operation().get(`${this.url}/snapshots`);
+        let list = await this.pool.client.request({ url: `${this.url}/snapshots` }).json()
         return list.map(url => path.basename(url));
     }
 
@@ -52,7 +69,7 @@ export default class Volume extends Model {
     }
 
     async list_backups() {
-        let list = await this.pool.client.operation().get(`${this.url}/backups`);
+        let list = await this.pool.client.request({ url:`${this.url}/backups` }).json()
         return list.map(url => path.basename(url));
     }
 }

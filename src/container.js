@@ -133,7 +133,7 @@ export default class Container extends Model {
 
     // Force destruction on container
     async force_destroy() {
-        try { await this.stop(); } catch(e) {
+        try { await this.stop({ force: true }); } catch(e) {
             console.log(e.message)
         }
         try { await this.destroy(); } catch(e) {
@@ -141,12 +141,6 @@ export default class Container extends Model {
         }
 
         return this
-    }
-
-    // Low level update for container config
-    async put(body) {
-        let response = await this.client.async_operation().put(this.url, body);
-        return this.load();
     }
 
     // Set LXD container config directive
@@ -196,8 +190,23 @@ export default class Container extends Model {
 
     // Update containers config in LXD with current local container config
     // Its possible to update local config with "mount" & "set_environment_variable" functions
-    update() {
-        return this.put(this.config);
+    async update({ wait = true } = {}) {
+        console.log(this.config)
+
+        let operation = await this.client.start_operation({
+            method: 'PATCH',
+            url: this.url,
+            json: {
+                devices: this.config.devices,
+                config: this.config.config,
+            },
+        })
+
+        if (wait) {
+            await operation.wait()
+        }
+
+        return this
     }
 
     // Execute command in container

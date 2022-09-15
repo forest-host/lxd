@@ -45,7 +45,7 @@ describe('Volume', () => {
             await container.force_destroy()
 
             // Create a clone & remove original
-            let clone = await get_volume('clone').clone_from(volume)
+            let clone = await get_volume('clone').clone_from({ source: volume })
             await volume.destroy();
 
             // Mount clone to fetch file

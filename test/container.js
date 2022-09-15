@@ -54,7 +54,6 @@ describe('Container', () => {
             let state = await container.get_state();
             state.should.have.property('status').that.equals('Stopped');
 
-            process.exit(1)
             await container.set_state({ action: 'start' });
 
             state = await container.get_state();
@@ -101,6 +100,7 @@ describe('Container', () => {
 
         it('Updates config of container in LXD with local config', async () => {
             let [volume, container] = await Promise.all([create_volume(), create_container()])
+
             await container
                 .mount(volume, '/test', 'test')
                 .set_environment_variable('TREE_HOST', 'Birch')

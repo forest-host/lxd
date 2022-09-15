@@ -11,15 +11,22 @@ export class Operation {
     // Start operation in LXD backend
     async start() {
         let response = await this.client.request(...arguments).json()
+
         if (response.error != '') {
             throw new Error(response.error)
         }
 
+        this.type = response.type
         this.metadata = response.metadata
         return this
     }
 
     async wait() {
+        // Certain operations are "sync", meaning we dont have to wait
+        if(this.type == 'sync') {
+            return this
+        }
+
         const config = { url: `${this.url}/wait` }
         let response = await this.client.request(config).json()
 
