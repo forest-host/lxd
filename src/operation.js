@@ -20,7 +20,7 @@ export class Operation {
     }
 
     async wait() {
-        const config = { url: this.url }
+        const config = { url: `${this.url}/wait` }
         let response = await this.client.request(config).json()
 
         if(response.metadata.status == 'Failure') {

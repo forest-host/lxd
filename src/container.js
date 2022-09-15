@@ -45,7 +45,7 @@ export default class Container extends Model {
     }
 
     // Create this container on LXD backend
-    async create({ wait = false } = {}) {
+    async create({ wait = true } = {}) {
         let config = {
             method: 'POST',
             url: 'instances',
@@ -66,7 +66,7 @@ export default class Container extends Model {
     }
 
     // (stop, start, restart, freeze or unfreeze)
-    async set_state({ action, force = false, wait = false } = {}) {
+    async set_state({ action, force = false, wait = true } = {}) {
         // create container request
         let config = {
             method: 'PUT',
@@ -90,8 +90,9 @@ export default class Container extends Model {
     stop(config) { return this.set_state({ action: 'stop', ...config }); }
     restart(config) { return this.set_state({ action: 'restart', ...config }); }
 
-    get_state() {
-        return this.client.operation().get(`${this.url}/state`);
+    async get_state() {
+        let response = await this.client.request({ url: `${this.url}/state` }).json()
+        return response.metadata
     }
 
     async get_ipv4_addresses() {
@@ -117,7 +118,7 @@ export default class Container extends Model {
     }
 
     // Remove this container from LXD backend
-    async destroy({ wait = false } = {}) {
+    async destroy({ wait = true } = {}) {
         let config = {
             url: this.url,
             method: 'DELETE',
@@ -132,7 +133,7 @@ export default class Container extends Model {
 
     // Force destruction on container
     async force_destroy() {
-        try { await this.stop({ wait: true }); } catch(e) {
+        try { await this.stop(); } catch(e) {
             console.log(e.message)
         }
         try { await this.destroy(); } catch(e) {

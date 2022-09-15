@@ -50,9 +50,14 @@ describe('Container', () => {
         it('Changes container state', async function() {
             this.timeout(10000)
             let container = await create_container()
-            await container.set_state('start');
 
             let state = await container.get_state();
+            state.should.have.property('status').that.equals('Stopped');
+
+            process.exit(1)
+            await container.set_state({ action: 'start' });
+
+            state = await container.get_state();
             state.should.have.property('status').that.equals('Running');
 
             await container.force_destroy()

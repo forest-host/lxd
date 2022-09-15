@@ -16,7 +16,7 @@ export const get_container = (name = 'testing', image = 'testing', profile = 'te
     .from_image(image)
     .set_profile(profile)
 
-export const create_container = () => get_container().create({ wait: true })
+export const create_container = () => get_container().create()
 export const start_container = () => create_container().then(container => container.start())
 
 export const get_pool = (name = 'default') => lxd.get_pool(name)
