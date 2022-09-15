@@ -9,7 +9,7 @@ export class Operation {
     }
 
     // Start operation in LXD backend
-    async start() {
+    async request() {
         let response = await this.client.request(...arguments).json()
 
         if (response.error != '') {

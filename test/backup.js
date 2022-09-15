@@ -2,7 +2,7 @@
 import {
     clean_volume,
     create_volume,
-} from './'
+} from './index.js'
 
 describe('Backup', () => {
     afterEach(clean_volume)

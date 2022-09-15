@@ -1,5 +1,7 @@
 
+import WebSocket from 'ws';
 import { Readable as readable } from 'stream';
+
 import Volume from './volume.js';
 import Model from './model.js';
 
@@ -191,8 +193,6 @@ export default class Container extends Model {
     // Update containers config in LXD with current local container config
     // Its possible to update local config with "mount" & "set_environment_variable" functions
     async update({ wait = true } = {}) {
-        console.log(this.config)
-
         let operation = await this.client.start_operation({
             method: 'PATCH',
             url: this.url,
@@ -210,7 +210,7 @@ export default class Container extends Model {
     }
 
     // Execute command in container
-    async exec({ command = [] } = {}) {
+    async exec(config = { command = [] } = {}) {
         // Valid command?
         if ( ! Array.isArray(config.command) || config.command.length == 0 ) {
             throw new Error('No command in arguments')
@@ -227,24 +227,52 @@ export default class Container extends Model {
             method: 'POST',
             url: `${this.url}/exec`,
             json: {
-                command,
+                ...config,
                 ...defaults,
             },
         })
-
-        console.log(operation)
     
-        // TODO - Websocket stuff
+        // Create stdin, stdout, stderr sockets
+        let sockets = ['0', '1', '2'].reduce((sockets, fd) => {
+            let url = `${operation.url}/websocket?secret=${operation.metadata.metadata.fds[fd]}`;
+            let socket = this.client.open_socket(url)
+            return { ...sockets, [fd]: socket }
+        }, {})
+
+        // Capture outputs of command
+        let output = { 'stdout': '', 'stderr': '' };
+        sockets['1'].on('message', data => output['stdout'] += data.toString('utf8'))
+        sockets['2'].on('message', data => output['stderr'] += data.toString('utf8'))
+
+        // Wait for status code (indicating command has finished)
+        while(true) {
+            await operation.request({ url: operation.url })
+
+            if('return' in operation.metadata.metadata) {
+                break
+            }
+
+            await new Promise(resolve => setTimeout(resolve, 500))
+        }
+    
+        // Close sockets & wait for close
+        for(let fd in sockets) {
+            sockets[fd].close()
+        }
+        
+        return {
+            return: operation.metadata.metadata.return,
+            ...output
+        }
     }
 
     // Upload string to file in container
     upload_string(string, path) {
         // TODO - Body used to be returned without content-type:json, check if this is still the case
-        return this.client.raw_request({
+        return this.client.request({
             method: 'POST',
             url: `${this.url}/files`,
-            qs: { path },
-            json: false,
+            searchParams: { path },
             headers: {
                 'X-LXD-type': 'file',
                 'Content-Type': 'plain/text',
@@ -255,11 +283,10 @@ export default class Container extends Model {
 
     // Upload readable stream to container
     upload(stream, path) {
-        let request = this.client.raw_request({
+        let request = this.client.request({
             method: 'POST',
             url: `${this.url}/files`,
-            qs: { path },
-            json: true,
+            searchParams: { path },
             headers: {
                 'X-LXD-type': 'file',
             }
@@ -277,10 +304,10 @@ export default class Container extends Model {
     }
 
     download(path) {
-        return this.client.raw_request({ 
+        return this.client.request({ 
             method: 'GET', 
             url: `${this.url}/files`, 
-            qs: { path } 
+            searchParams: { path } 
         })
     }
 }

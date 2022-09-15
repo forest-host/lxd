@@ -1,8 +1,8 @@
 
+import WebSocket from 'ws';
 import path from 'path';
 import fs from 'fs';
 import got, { Options } from 'got'
-import WebSocket from 'ws';
 
 import { Operation } from './operation.js';
 import Container from './container.js';
@@ -12,8 +12,9 @@ import Pool from './pool.js';
 export default class Client {
     constructor(config) {
         // GOT options
+        this.base_url = `${config.host}:${config.port}/1.0/`
         this.options = new Options({
-            prefixUrl: `https://${config.host}:${config.port}/1.0`,
+            prefixUrl: `https://${this.base_url}`,
             https: {
                 certificate: fs.readFileSync(config.cert),
                 key: fs.readFileSync(config.key),
@@ -25,7 +26,7 @@ export default class Client {
 
     // Get global LXD events listener 
     open_socket(url) {
-        return new WebSocket(`wss://${this.config.base_url}${url}`, { rejectUnauthorized: false });
+        return new WebSocket(`wss://${this.base_url}${url}`, { rejectUnauthorized: false });
     }
 
     // Raw request function that will pass on config to request lib
@@ -36,7 +37,7 @@ export default class Client {
     // Launch operation in LXD
     start_operation() {
         let operation = new Operation(this)
-        return operation.start(...arguments)
+        return operation.request(...arguments)
     }
 
     // Get LXD storage pool representation
