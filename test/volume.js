@@ -59,18 +59,6 @@ describe('Volume', () => {
         })
     })
 
-    describe('load()', () => {
-        it('Loads volume config', async () => {
-            let volume = await get_volume('name').create()
-            volume.unload();
-            await volume.load();
-
-            volume.name.should.equal('name');
-
-            await volume.destroy()
-        })
-    })
-
     describe('destroy()', () => {
         it('Destroys volume', async () => {
             let volume = await get_volume().create()
