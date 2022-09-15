@@ -1,34 +1,22 @@
 {
   "name": "@forest.host/lxd",
   "version": "1.7.1",
-  "repository": "git@github.com:suprasoil/lxd.git",
+  "repository": "git@github.com:forest-host/lxd.git",
   "description": "Simple nodejs LXD client",
-  "main": "lib/index.js",
+  "main": "src/index.js",
   "type": "module",
   "scripts": {
-    "prepublish": "babel src -d lib",
     "test": "mocha --bail"
   },
   "author": "Johan Schuijt",
   "license": "ISC",
-  "babel": {
-    "plugins": [
-      "@babel/plugin-transform-modules-commonjs"
-    ]
-  },
   "dependencies": {
     "got": "^12.4.1",
-    "request": "^2.88.2",
-    "request-promise-native": "^1.0.9",
-    "ws": "^7.4.6"
+    "ws": "^8.8.1"
   },
   "devDependencies": {
-    "@babel/cli": "^7.12.13",
-    "@babel/core": "^7.12.13",
-    "@babel/plugin-transform-modules-commonjs": "^7.12.13",
-    "@babel/register": "^7.12.13",
-    "chai": "^4.3.0",
+    "chai": "^4.3.6",
     "chai-as-promised": "^7.1.1",
-    "mocha": "^8.2.1"
+    "mocha": "^10.0.0"
   }
 }
