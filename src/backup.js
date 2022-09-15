@@ -15,15 +15,12 @@ export default class Backup extends Model {
         return `${this.volume.url()}/backups/${this.name()}`;
     }
 
-    async create() {
-        // TODO - make async op return conf
-        await this.client.async_operation().post(`${this.volume.url()}/backups`, this.config);
-        return this.load();
+    create() {
+        return this.client.async_operation().post(`${this.volume.url()}/backups`, this.config);
     }
 
-    async destroy() {
-        await this.client.async_operation().request('DELETE', this.url());
-        return this.unload();
+    destroy() {
+        return this.client.async_operation().request('DELETE', this.url());
     }
 
     download() {

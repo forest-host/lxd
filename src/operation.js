@@ -1,63 +1,12 @@
 
-import { EventEmitter } from 'events';
-import { map_series, wait_for_socket_open } from './util';
-
-// Cache events that occurred in LXD.
-// We do this because events could occur before we are listening when running async operations
-class EventStash extends EventEmitter {
-    constructor(client) {
-        super();
-        this.client = client;
-        this.events = [];
-
-        this.once('newListener', (_, listener) => {
-            this.events.forEach(data => listener(data));
-        })
-    }
-
-    // Listen for operation events on global LXD events sckoet
-    async open_socket() {
-        this.socket = await wait_for_socket_open(this.client.open_socket('/events?type=operation'));
-
-        this.socket.on('message', string => {
-            let message = JSON.parse(string);
-
-            if(this.listenerCount('message') > 0) {
-                // If there's listeners, pass it on
-                this.emit('message', message);
-            } else {
-                // If there's no listeners, save event so we can pass it when something starts listening
-                this.events.push(message);
-            }
-        });
-    }
-
-    // Close event socket
-    close_socket() {
-        this.socket.close();
-    }
-}
-
-// TODO - We should be able to determine async or sync from response of LXD API, why don't we do this?
 export class Operation {
-    constructor(client) {
-        this.client = client;
+    constructor(client, response) {
+        this.client = client
+        this.metadata = response.metadata
     }
-
-    // Request & return operation metadata
-    async request() {
-        let response = await this.client.request(...arguments);
-
-        return response.metadata;
-    }
-
-    // Simple HTTP method functions
-    get(url, qs) { return this.request('GET', url, undefined, qs); }
-    put(url, body, qs) { return this.request('PUT', ...arguments); }
-    post(url, body, qs) { return this.request('POST', ...arguments); }
-    delete(url, qs) { return this.request('DELETE', url, undefined, qs); }
 }
 
+/*
 // TODO - We should be able to determine async or sync from response of LXD API, why don't we do this?
 export class AsyncOperation extends Operation {
     constructor(client, url) {
@@ -126,26 +75,16 @@ export class AsyncOperation extends Operation {
 
         // TODO - Why do we mapseries? (probably to first open control socket before others but i'm not sure)
         // "map" the keys of this object to new object of sockets
-        let sockets = await map_series(file_descriptors, async key => {
-            // Generate url from metadata
-            var url = `/operations/${metadata.id}/websocket?secret=${metadata.metadata.fds[key]}`;
-            let socket = await wait_for_socket_open(this.client.open_socket(url));
+        let sockets = file_descriptors.reduce(fd => {
+            let url = `/operations/${metadata.id}/websocket?secret=${metadata.metadata.fds[fd]}`;
+            return { ...agg, [fd]: socket }
+        }, {})
 
-            return { [key]: socket };
-        });
+        // Wait for sockets to open
+        await Promise.all(Object.keys(sockets)
+            .map(fd => new Promise(resolve => sockets[fd].on('open', resolve))))
 
-        // Create one object from all the small ones
-        sockets = Object.assign(...sockets);
-
-        return this.finalize_websocket_operation(sockets, metadata);
-    }
-
-    // Finalize websocket operation, collecting data from sockets
-    async finalize_websocket_operation(sockets, metadata) {
-        let result = {
-            stdout: [],
-            stderr: [],
-        };
+        let result = { stdout: '', stderr: '' };
 
         for (let i = 0; i < Object.keys(result).length; i++) {
             let key = Object.keys(result)[i];
@@ -206,3 +145,4 @@ export class AsyncOperation extends Operation {
     }
 }
 
+*/

@@ -45,7 +45,7 @@ export default class Container extends Model {
     }
 
     // Create this container on LXD backend
-    async create() {
+    async create(wait = false) {
         let args = ['/instances', this.config];
 
         if(typeof this.target !== 'undefined') {
@@ -59,10 +59,15 @@ export default class Container extends Model {
     }
 
     // (stop, start, restart, freeze or unfreeze)
-    async set_state(action, force = false, timeout = -1, stateful = false) {
+    async set_state(action, force = false) {
         // create container request
         let operation = this.client.async_operation()
-        let response = await operation.put(`${this.url()}/state`, { action, timeout, force, stateful })
+        let response = await operation.put(`${this.url()}/state`, { 
+            action, 
+            force, 
+            timeout: -1, 
+            stateful: false 
+        })
 
         if(response.err) {
             throw new Error(response.err);
@@ -240,7 +245,11 @@ export default class Container extends Model {
     }
 
     download(path) {
-        return this.client.raw_request({ method: 'GET', url: `${this.url()}/files`, qs: { path: path } })
+        return this.client.raw_request({ 
+            method: 'GET', 
+            url: `${this.url()}/files`, 
+            qs: { path } 
+        })
     }
 }
 

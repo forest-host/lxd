@@ -1,14 +1,12 @@
 
 import path from 'path';
-import stream from 'stream';
 import fs from 'fs';
 import request from 'request-promise-native';
 import WebSocket from 'ws';
 
-import { AsyncOperation, Operation } from './operation';
+import { Operation } from './operation';
 import Container from './container';
 import Pool from './pool';
-import { map_series, wait_for_socket_open } from './util';
 
 export default class Client {
     constructor(config) {
@@ -39,36 +37,17 @@ export default class Client {
     }
 
     // Raw request function that will pass on config to request lib
-    raw_request(config) {
+    request(config) {
         config.url = `https://${this.config.base_url}${config.url}`;
         config.agentOptions = this.agentOptions;
+
         return request(config);
     }
 
-    // Simple request with body & query string
-    request(method, url, body, qs) {
-        // Set url
-        let config = { json: true, method, url, };
-
-        if(typeof(body) === 'object') {
-            config.body = body;
-        }
-        if(typeof(qs) === 'object') {
-            config.qs = qs;
-        }
-
-        // Actually make the request
-        return this.raw_request(config);
-    }
-
-    // Run sync operation
-    operation(url) {
-        return new Operation(this);
-    }
-
-    // Run async operation
-    async_operation(url) {
-        return new AsyncOperation(this);
+    // Launch operation in LXD
+    async create_operation() {
+        let response = await this.request(...arguments)
+        return Operation(this, response)
     }
 
     // Get LXD storage pool representation
