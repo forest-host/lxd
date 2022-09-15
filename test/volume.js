@@ -19,7 +19,7 @@ describe('Volume', () => {
         it('Creates new storage volume', async () => {
             let volume = await create_volume()
             let list = await get_pool().list();
-            list.should.contain(volume.name());
+            list.should.contain(volume.name);
             await volume.destroy()
         })
     })
@@ -65,7 +65,7 @@ describe('Volume', () => {
             volume.unload();
             await volume.load();
 
-            volume.name().should.equal('name');
+            volume.name.should.equal('name');
 
             await volume.destroy()
         })
@@ -77,7 +77,7 @@ describe('Volume', () => {
             await volume.destroy()
             let list = await get_pool().list();
 
-            list.should.not.contain(volume.name());
+            list.should.not.contain(volume.name);
         });
     })
 

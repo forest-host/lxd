@@ -27,7 +27,7 @@ describe('Backup', () => {
             let backup = await volume.get_backup(name).create()
             backup.unload()
             await backup.load();
-            backup.name().should.equal(name);
+            backup.name.should.equal(name);
 
             await volume.destroy()
         });

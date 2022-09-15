@@ -1,7 +1,7 @@
 
 import { Readable as readable } from 'stream';
-import Volume from './volume';
-import Model from './model';
+import Volume from './volume.js';
+import Model from './model.js';
 
 export default class Container extends Model {
     constructor(client, name) {
@@ -15,8 +15,8 @@ export default class Container extends Model {
         });
     }
 
-    url() {
-        return `/instances/${this.name()}`;
+    get url() {
+        return `instances/${this.name}`;
     }
 
     // Set up container on target cluster host
@@ -45,43 +45,53 @@ export default class Container extends Model {
     }
 
     // Create this container on LXD backend
-    async create(wait = false) {
-        let args = ['/instances', this.config];
-
+    async create({ wait = false } = {}) {
+        let config = {
+            method: 'POST',
+            url: 'instances',
+            json: this.config,
+        }
+    
         if(typeof this.target !== 'undefined') {
-            args.push({ target: this.target });
+            config.target = this.target
         }
 
         // Create container
-        let res = await this.client.async_operation().post(...args)
+        let operation = await this.client.start_operation(config)
+        if(wait) {
+            await operation.wait()
+        }
 
-        return this.load();
+        return this
     }
 
     // (stop, start, restart, freeze or unfreeze)
-    async set_state(action, force = false) {
+    async set_state({ action, force = false, wait = false } = {}) {
         // create container request
-        let operation = this.client.async_operation()
-        let response = await operation.put(`${this.url()}/state`, { 
-            action, 
-            force, 
-            timeout: -1, 
-            stateful: false 
-        })
-
-        if(response.err) {
-            throw new Error(response.err);
+        let config = {
+            method: 'PUT',
+            url: `${this.url}/state`,
+            json: {
+                action, 
+                force, 
+                timeout: -1, 
+                stateful: false 
+            }
         }
 
-        return this.load();
+        let operation = await this.client.start_operation(config)
+        if(wait) {
+            await operation.wait()
+        }
+        return this
     }
 
-    start() { return this.set_state('start', ...arguments); }
-    stop() { return this.set_state('stop', ...arguments); }
-    restart() { return this.set_state('restart', ...arguments); }
+    start(config) { return this.set_state({ action: 'start', ...config }); }
+    stop(config) { return this.set_state({ action: 'stop', ...config }); }
+    restart(config) { return this.set_state({ action: 'restart', ...config }); }
 
     get_state() {
-        return this.client.operation().get(`${this.url()}/state`);
+        return this.client.operation().get(`${this.url}/state`);
     }
 
     async get_ipv4_addresses() {
@@ -107,21 +117,26 @@ export default class Container extends Model {
     }
 
     // Remove this container from LXD backend
-    async destroy() {
-        await this.client.async_operation().delete(this.url());
-        await this.unload();
+    async destroy({ wait = false } = {}) {
+        let config = {
+            url: this.url,
+            method: 'DELETE',
+        }
+        let operation = await this.client.start_operation(config)
+        if (wait) {
+            await operation.wait()
+        }
 
         return this;
     }
 
     // Force destruction on container
     async force_destroy() {
-        try { await this.stop(true); } catch(e) {
+        try { await this.stop({ wait: true }); } catch(e) {
             console.log(e.message)
         }
-        try { await this.destroy(); } catch(_) {
-            // TODO - only allow not found error
-            console.log('could not destroy container')
+        try { await this.destroy(); } catch(e) {
+            console.log(e.message)
         }
 
         return this
@@ -129,7 +144,7 @@ export default class Container extends Model {
 
     // Low level update for container config
     async put(body) {
-        let response = await this.client.async_operation().put(this.url(), body);
+        let response = await this.client.async_operation().put(this.url, body);
         return this.load();
     }
 
@@ -161,8 +176,8 @@ export default class Container extends Model {
         this.config.devices[device_name] = { 
             path, 
             type: 'disk',
-            source: volume.name(),
-            pool: volume.pool.name(),
+            source: volume.name,
+            pool: volume.pool.name,
         };
         return this
     }
@@ -202,7 +217,7 @@ export default class Container extends Model {
         };
 
         // Create exec operation
-        return this.client.async_operation().post(`${this.url()}/exec`, body);
+        return this.client.async_operation().post(`${this.url}/exec`, body);
     }
 
     // Upload string to file in container
@@ -210,7 +225,7 @@ export default class Container extends Model {
         // TODO - Body used to be returned without content-type:json, check if this is still the case
         return this.client.raw_request({
             method: 'POST',
-            url: `${this.url()}/files`,
+            url: `${this.url}/files`,
             qs: { path },
             json: false,
             headers: {
@@ -225,7 +240,7 @@ export default class Container extends Model {
     upload(stream, path) {
         let request = this.client.raw_request({
             method: 'POST',
-            url: `${this.url()}/files`,
+            url: `${this.url}/files`,
             qs: { path },
             json: true,
             headers: {
@@ -247,7 +262,7 @@ export default class Container extends Model {
     download(path) {
         return this.client.raw_request({ 
             method: 'GET', 
-            url: `${this.url()}/files`, 
+            url: `${this.url}/files`, 
             qs: { path } 
         })
     }

@@ -1,24 +1,19 @@
 
 import path from 'path';
-import Volume from './volume';
+import Volume from './volume.js';
 
 class Pool {
     constructor(client, name) {
-        this.client = client;
-        this.config = { name, };
+        super(client, { name })
     }
 
-    name() {
-        return this.config.name;
-    }
-
-    url() {
-        return '/storage-pools/' + this.name() + '/volumes/custom';
+    get url() {
+        return '/storage-pools/' + this.name + '/volumes/custom';
     }
 
     async list() {
         // Get custom volumes
-        let list = await this.client.operation().get(this.url());
+        let list = await this.client.operation().get(this.url);
 
         // Only get volume names
         return list.map(uri => path.basename(uri));

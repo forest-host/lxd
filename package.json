@@ -4,9 +4,10 @@
   "repository": "git@github.com:suprasoil/lxd.git",
   "description": "Simple nodejs LXD client",
   "main": "lib/index.js",
+  "type": "module",
   "scripts": {
     "prepublish": "babel src -d lib",
-    "test": "mocha --bail --require @babel/register"
+    "test": "mocha --bail"
   },
   "author": "Johan Schuijt",
   "license": "ISC",
@@ -16,6 +17,7 @@
     ]
   },
   "dependencies": {
+    "got": "^12.4.1",
     "request": "^2.88.2",
     "request-promise-native": "^1.0.9",
     "ws": "^7.4.6"

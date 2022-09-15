@@ -6,12 +6,12 @@ export default class Model {
         return this
     }
 
-    name() {
+    get name() {
         return this.config.name;
     }
 
     async load() {
-        this.config = await this.client.operation().get(this.url());
+        this.config = await this.client.operation().get(this.url);
         return this
     }
 

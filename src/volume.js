@@ -1,9 +1,9 @@
 
 import path from 'path';
 
-import Model from './model';
-import Snapshot from './snapshot';
-import Backup from './backup';
+import Model from './model.js';
+import Snapshot from './snapshot.js';
+import Backup from './backup.js';
 
 export default class Volume extends Model {
     constructor(pool, name) {
@@ -11,25 +11,25 @@ export default class Volume extends Model {
         this.pool = pool;
     }
 
-    url() {
-        return `${this.pool.url()}/${this.name()}`
+    get url() {
+        return `${this.pool.url}/${this.name}`
     }
 
     async create() {
-        await this.client.operation().post(this.pool.url(), this.config);
+        await this.client.operation().post(this.pool.url, this.config);
         return this.load();
     }
 
     async destroy() {
-        await this.client.operation().delete(this.url());
+        await this.client.operation().delete(this.url);
         return this.unload();
     }
 
     // Clone from other volume on creating this volume
     clone_from(source, volume_only = true) {
         this.config.source = {
-            name: source.name(),
-            pool: source.pool.name(),
+            name: source.name,
+            pool: source.pool.name,
             type: 'copy',
             // We generally don't want to copy snapshots
             volume_only,
@@ -43,7 +43,7 @@ export default class Volume extends Model {
     }
 
     async list_snapshots() {
-        let list = await this.pool.client.operation().get(`${this.url()}/snapshots`);
+        let list = await this.pool.client.operation().get(`${this.url}/snapshots`);
         return list.map(url => path.basename(url));
     }
 
@@ -52,7 +52,7 @@ export default class Volume extends Model {
     }
 
     async list_backups() {
-        let list = await this.pool.client.operation().get(`${this.url()}/backups`);
+        let list = await this.pool.client.operation().get(`${this.url}/backups`);
         return list.map(url => path.basename(url));
     }
 }

@@ -1,5 +1,5 @@
 
-import Model from './model';
+import Model from './model.js';
 
 export default class Backup extends Model {
     constructor(volume, name) {
@@ -11,19 +11,19 @@ export default class Backup extends Model {
         this.volume = volume;
     }
 
-    url() {
-        return `${this.volume.url()}/backups/${this.name()}`;
+    get url() {
+        return `${this.volume.url}/backups/${this.name}`;
     }
 
     create() {
-        return this.client.async_operation().post(`${this.volume.url()}/backups`, this.config);
+        return this.client.async_operation().post(`${this.volume.url}/backups`, this.config);
     }
 
     destroy() {
-        return this.client.async_operation().request('DELETE', this.url());
+        return this.client.async_operation().request('DELETE', this.url);
     }
 
     download() {
-        return this.client.raw_request({ method: 'GET', url: `${this.url()}/export` })
+        return this.client.raw_request({ method: 'GET', url: `${this.url}/export` })
     }
 }

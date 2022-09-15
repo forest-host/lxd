@@ -1,8 +1,33 @@
 
 export class Operation {
-    constructor(client, response) {
+    constructor(client) {
         this.client = client
+    }
+
+    get url() {
+        return `operations/${this.metadata.id}`
+    }
+
+    // Start operation in LXD backend
+    async start() {
+        let response = await this.client.request(...arguments).json()
+        if (response.error != '') {
+            throw new Error(response.error)
+        }
+
         this.metadata = response.metadata
+        return this
+    }
+
+    async wait() {
+        const config = { url: this.url }
+        let response = await this.client.request(config).json()
+
+        if(response.metadata.status == 'Failure') {
+            throw new Error(response.metadata.err)
+        }
+        
+        return this
     }
 }
 

@@ -16,7 +16,7 @@ import {
     start_container,
     get_volume,
     create_volume,
-} from './'
+} from './index.js'
 
 describe('Container', () => {
     afterEach(clean_container)
@@ -38,9 +38,10 @@ describe('Container', () => {
     describe('create()', () => {
         it('Creates container', async () => {
             let container = await create_container()
-            
+
             let list = await lxd.list()
-            list.should.contain(container.name());
+            console.log(container)
+            list.should.contain(container.name);
 
             return container.destroy()
         });
@@ -77,8 +78,8 @@ describe('Container', () => {
             let container = get_container()
             let volume = get_volume()
             container.mount(volume, '/test_volume', 'volume');
-            container.config.devices.volume.pool.should.equal(volume.pool.name());
-            container.config.devices.volume.source.should.equal(volume.name());
+            container.config.devices.volume.pool.should.equal(volume.pool.name);
+            container.config.devices.volume.source.should.equal(volume.name);
         });
     })
 
@@ -102,13 +103,13 @@ describe('Container', () => {
                 .update();
 
             container.config.config['environment.TREE_HOST'].should.equal('Birch');
-            container.config.devices.test.source.should.equal(volume.name());
+            container.config.devices.test.source.should.equal(volume.name);
 
             await container.destroy()
             await volume.destroy()
         });
     })
-    
+
     describe('exec()', () => {
         it('Executes command in container', async function() {
             this.timeout(30000)
@@ -120,7 +121,7 @@ describe('Container', () => {
             await container.start()
 
             let result = await container.exec('hostname')
-            result.stdout[0].should.contain(container.name());
+            result.stdout[0].should.contain(container.name);
 
             result = await container.exec('pwd')
             result.stdout[0].should.equal('/root')
@@ -178,7 +179,7 @@ describe('Container', () => {
         it('Downloads a file from container', async () => {
             let container = await start_container()
             let contents = await container.download('/etc/hosts')
-            contents.should.contain(container.name())
+            contents.should.contain(container.name)
 
             await assert.isRejected(container.download('/non_existant_file'))
 
@@ -190,14 +191,14 @@ describe('Container', () => {
         it('does not delete running container', async function() {
             this.timeout(30000);
             let container = await start_container()
-        
+
             await assert.isRejected(container.destroy())
 
             await container.stop(true);
             await container.destroy()
 
             let list = await lxd.list();
-            list.should.not.contain(container.name())
+            list.should.not.contain(container.name)
         });
     });
 });

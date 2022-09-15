@@ -1,5 +1,5 @@
 
-import Model from './model';
+import Model from './model.js';
 
 export default class Snapshot extends Model {
     constructor(volume, name) {
@@ -7,22 +7,22 @@ export default class Snapshot extends Model {
         this.volume = volume;
     }
 
-    url() {
-        return `${this.volume.url()}/snapshots/${this.name()}`;
+    get url() {
+        return `${this.volume.url}/snapshots/${this.name}`;
     }
 
     async create() {
-        await this.client.async_operation().post(`${this.volume.url()}/snapshots`, this.config);
+        await this.client.async_operation().post(`${this.volume.url}/snapshots`, this.config);
         return this.load();
     }
 
     async destroy() {
-        await this.client.async_operation().request('DELETE', this.url());
+        await this.client.async_operation().request('DELETE', this.url);
         return this.unload();
     }
 
     async restore() {
-        await this.client.operation().put(this.volume.url(), { restore: this.name() });
+        await this.client.operation().put(this.volume.url, { restore: this.name });
 
         return this;
     }

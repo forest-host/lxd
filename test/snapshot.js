@@ -15,8 +15,8 @@ describe('Snapshot', () => {
             let snapshot = await volume.get_snapshot('snap').create()
 
             let list = await volume.list_snapshots();
-            list.should.contain(snapshot.name());
-            snapshot.name().should.equal('snap');
+            list.should.contain(snapshot.name);
+            snapshot.name.should.equal('snap');
 
             await volume.destroy()
         });
@@ -29,7 +29,7 @@ describe('Snapshot', () => {
 
             snapshot.unload();
             await snapshot.load();
-            snapshot.name().should.equal('snap');
+            snapshot.name.should.equal('snap');
 
             await volume.destroy()
         });
