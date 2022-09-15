@@ -11,19 +11,40 @@ export default class Snapshot extends Model {
         return `${this.volume.url}/snapshots/${this.name}`;
     }
 
-    async create() {
-        await this.client.async_operation().post(`${this.volume.url}/snapshots`, this.config);
-        return this.load();
+    async create({ wait = true } = {}) {
+        let operation = await this.client.start_operation({
+            method: 'POST',
+            url: `${this.volume.url}/snapshots`,
+            json: this.config,
+        })
+
+        if(wait) {
+            await operation.wait();
+        }
+
+        return this
     }
 
-    async destroy() {
-        await this.client.async_operation().request('DELETE', this.url);
-        return this.unload();
+    async destroy({ wait = true } = {}) {
+        let operation = await this.client.start_operation({
+            method: 'DELETE',
+            url: this.url,
+        })
+
+        if(wait) {
+            await operation.wait();
+        }
+
+        return this
     }
 
     async restore() {
-        await this.client.operation().put(this.volume.url, { restore: this.name });
-
-        return this;
+        return this.client.request({
+            method: 'PUT',
+            url: this.volume.url,
+            json: {
+                restore: this.name,
+            }
+        })
     }
 }

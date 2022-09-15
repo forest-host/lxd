@@ -29,7 +29,6 @@ export default class Client {
         return new WebSocket(`wss://${this.base_url}${url}`, { rejectUnauthorized: false });
     }
 
-    // Raw request function that will pass on config to request lib
     request(config) {
         return got(config, undefined, this.options)
     }

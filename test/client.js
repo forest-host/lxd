@@ -2,8 +2,8 @@
 import chai from 'chai';
 chai.should();
 
-import { Container, Image } from '../src'
-import { lxd, get_container } from './'
+import { Container } from '../src/index.js'
+import { lxd, get_container } from './index.js'
 
 describe('LXD Client', () => {
     describe('list()', () => {

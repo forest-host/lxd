@@ -15,15 +15,35 @@ export default class Backup extends Model {
         return `${this.volume.url}/backups/${this.name}`;
     }
 
-    create() {
-        return this.client.async_operation().post(`${this.volume.url}/backups`, this.config);
+    async create({ wait = true } = {}) {
+        let operation = await this.client.start_operation({
+            method: 'POST',
+            url: `${this.volume.url}/backups`,
+            json: this.config,
+        })
+
+        if (wait) {
+            await operation.wait()
+        }
+
+        return this
     }
 
-    destroy() {
-        return this.client.async_operation().request('DELETE', this.url);
+    async destroy({ wait = true } = {}) {
+        let operation = await this.client.start_operation({
+            method: 'DELETE',
+            url: this.url,
+        })
+
+        if (wait) {
+            await operation.wait()
+        }
+
+        return this
     }
 
-    download() {
-        return this.client.raw_request({ method: 'GET', url: `${this.url}/export` })
-    }
+    // TODO - This should be streamed
+    //download() {
+        //return this.client.request({ method: 'GET', url: `${this.url}/export` })
+    //}
 }

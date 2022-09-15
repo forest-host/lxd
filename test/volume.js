@@ -2,7 +2,7 @@
 import chai from 'chai';
 chai.should();
 
-import { Snapshot } from '../src'
+import { Snapshot } from '../src/index.js'
 import { 
     clean_volume,
     clean_container,
@@ -10,7 +10,7 @@ import {
     get_volume,
     create_volume,
     get_container,
-} from './'
+} from './index.js'
 
 describe('Volume', () => {
     afterEach(clean_volume)

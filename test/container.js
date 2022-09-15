@@ -21,7 +21,6 @@ import {
 describe('Container', () => {
     afterEach(clean_container)
 
-    /*
     describe('from_image()', () => {
         it('Sets image source with alias', () => {
             let container = lxd.get_container('test').from_image('testing')
@@ -114,7 +113,6 @@ describe('Container', () => {
             await volume.destroy()
         });
     })
-    */
 
     describe('exec()', () => {
         it('Executes command in container', async function() {
@@ -145,7 +143,8 @@ describe('Container', () => {
     });
 
     describe('upload_string()', () => {
-        it('Uploads a string to a file in container', async () => {
+        it('Uploads a string to a file in container', async function() {
+            this.timeout(20000)
             let string = 'hey there'
             let path = '/uploaded.txt'
             let container = await start_container()
@@ -158,6 +157,20 @@ describe('Container', () => {
         })
     });
 
+    describe('download_string()', done => {
+        it('Downloads a file from container', async function() {
+            this.timeout(20000)
+            let container = await start_container()
+            let contents = await container.download('/etc/hosts')
+            contents.should.contain(container.name)
+
+            await assert.isRejected(container.download('/non_existant_file'))
+
+            await container.force_destroy()
+        });
+    })
+
+    /*
     describe('upload()', () => {
         it('Streams readable stream to container', async () => {
             let file = 'test/test.key'
@@ -172,18 +185,7 @@ describe('Container', () => {
             await container.force_destroy()
         });
     })
-
-    describe('download()', done => {
-        it('Downloads a file from container', async () => {
-            let container = await start_container()
-            let contents = await container.download('/etc/hosts')
-            contents.should.contain(container.name)
-
-            await assert.isRejected(container.download('/non_existant_file'))
-
-            await container.force_destroy()
-        });
-    })
+    */
 
     describe('destroy()', () => {
         it('does not delete running container', async function() {

@@ -17,7 +17,7 @@ class Pool extends Model {
         let list = await this.client.request({ url: this.url, }).json()
 
         // Only get volume names
-        return list.map(uri => path.basename(uri));
+        return list.metadata.map(uri => path.basename(uri));
     }
 
     get_volume(name) {

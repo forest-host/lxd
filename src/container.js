@@ -282,33 +282,26 @@ export default class Container extends Model {
     }
 
     // Upload readable stream to container
-    upload(stream, path) {
-        let request = this.client.request({
+    /*
+    async upload(stream, path) {
+        let request = await this.client.request({
             method: 'POST',
             url: `${this.url}/files`,
             searchParams: { path },
             headers: {
                 'X-LXD-type': 'file',
-            }
+            },
+            body: stream
         });
-
-        return new Promise((resolve, reject) => {
-            stream.on('error', reject);
-            stream.on('end', () => {
-                stream.destroy();
-                resolve(request);
-            });
-
-            stream.pipe(request);
-        })
     }
+    */
 
     download(path) {
         return this.client.request({ 
             method: 'GET', 
             url: `${this.url}/files`, 
             searchParams: { path } 
-        })
+        }).text()
     }
 }
 

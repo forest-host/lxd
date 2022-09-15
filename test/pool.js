@@ -2,8 +2,8 @@
 import chai from 'chai';
 chai.should();
 
-import { Volume } from '../src'
-import { get_pool } from './'
+import { Volume } from '../src/index.js'
+import { get_pool } from './index.js'
 
 describe('Pool', () => {
     describe('list()', () => {

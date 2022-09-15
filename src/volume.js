@@ -61,7 +61,7 @@ export default class Volume extends Model {
 
     async list_snapshots() {
         let list = await this.pool.client.request({ url: `${this.url}/snapshots` }).json()
-        return list.map(url => path.basename(url));
+        return list.metadata.map(url => path.basename(url));
     }
 
     get_backup(name) {
@@ -70,6 +70,6 @@ export default class Volume extends Model {
 
     async list_backups() {
         let list = await this.pool.client.request({ url:`${this.url}/backups` }).json()
-        return list.map(url => path.basename(url));
+        return list.metadata.map(url => path.basename(url));
     }
 }

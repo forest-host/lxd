@@ -14,20 +14,7 @@ describe('Backup', () => {
 
             let list = await volume.list_backups();
             list.should.contain('back');
-            backup.config.name.should.equal('back');
-
-            await volume.destroy()
-        });
-    });
-
-    describe('load()', () => {
-        it('Loads backup config', async () => {
-            let name = 'back'
-            let volume = await create_volume()
-            let backup = await volume.get_backup(name).create()
-            backup.unload()
-            await backup.load();
-            backup.name.should.equal(name);
+            backup.name.should.equal('back');
 
             await volume.destroy()
         });
