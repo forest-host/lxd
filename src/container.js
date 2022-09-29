@@ -92,11 +92,6 @@ export default class Container extends Model {
     stop(config) { return this.set_state({ action: 'stop', ...config }); }
     restart(config) { return this.set_state({ action: 'restart', ...config }); }
 
-    async get() {
-        let response = await this.client.request({ url: this.url }).json()
-        return response.metadata
-    }
-
     async get_state() {
         let response = await this.client.request({ url: `${this.url}/state` }).json()
         return response.metadata
