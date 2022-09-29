@@ -1,6 +1,6 @@
 {
   "name": "@forest.host/lxd",
-  "version": "1.7.1",
+  "version": "2.0.0",
   "repository": "git@github.com:forest-host/lxd.git",
   "description": "Simple nodejs LXD client",
   "main": "src/index.js",
