@@ -11,7 +11,7 @@ import { LXD, Container, Volume, Snapshot } from '../src/index.js';
 // Util functions
 export const lxd = new LXD({ key: '.keys/tests.key', cert: '.keys/tests.crt', port: '8443', host: '127.0.0.1' });
 
-export const get_container = (name = 'testing', image = 'testing', profile = 'testing') => lxd
+export const get_container = (name = 'testing', image = 'application-node-16', profile = 'default') => lxd
     .get_container(name)
     .from_image(image)
     .set_profile(profile)

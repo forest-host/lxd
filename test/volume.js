@@ -24,6 +24,17 @@ describe('Volume', () => {
         })
     })
 
+    describe('get()', () => {
+        it('Fetches storage volume data', async () => {
+            let volume = await create_volume()
+
+            let volume_get = await volume.get();
+            volume_get.should.have.property('used_by');
+
+            return volume.destroy()
+        });
+    })
+
     describe('clone_from()', () => {
         afterEach(function() { 
             return clean_volume.apply(this, ['clone']) 

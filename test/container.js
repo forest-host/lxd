@@ -46,6 +46,17 @@ describe('Container', () => {
         });
     })
 
+    describe('get()', () => {
+        it('Fetches container data', async () => {
+            let container = await create_container()
+
+            let container_get = await container.get();
+            container_get.should.have.property('project');
+
+            return container.destroy()
+        });
+    })
+
     describe('set_state()', () => {
         it('Changes container state', async function() {
             this.timeout(10000)
