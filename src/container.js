@@ -301,7 +301,7 @@ export default class Container extends Model {
             method: 'GET', 
             url: `${this.url}/files`, 
             searchParams: { path } 
-        }).text()
+        }, { isStream: true });
     }
 }
 

@@ -29,8 +29,8 @@ export default class Client {
         return new WebSocket(`wss://${this.base_url}${url}`, { rejectUnauthorized: false });
     }
 
-    request(config) {
-        return got(config, undefined, this.options)
+    request(config, options = undefined) {
+        return got(config, options, this.options)
     }
 
     // Launch operation in LXD

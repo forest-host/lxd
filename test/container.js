@@ -5,6 +5,7 @@ chai.use(cap)
 const assert = chai.assert
 chai.should();
 
+import { pipeline } from 'node:stream/promises';
 import fs from 'fs';
 
 import { 
@@ -168,14 +169,26 @@ describe('Container', () => {
         })
     });
 
-    describe('download_string()', done => {
+    describe('download()', done => {
         it('Downloads a file from container', async function() {
             this.timeout(20000)
             let container = await start_container()
-            let contents = await container.download('/etc/hosts')
-            contents.should.contain(container.name)
+            const readStream = container.download('/etc/hosts')
 
-            await assert.isRejected(container.download('/non_existant_file'))
+            let contents;
+            await pipeline(
+                readStream,
+                async function (source) {
+                    // We are expecting a string, rather than working with Buffer's
+                    source.setEncoding('utf8')
+
+                    for await (const chunk of source) {
+                        contents += chunk;
+                    };
+                }
+            )
+
+            contents.should.contain(container.name)
 
             await container.force_destroy()
         });
