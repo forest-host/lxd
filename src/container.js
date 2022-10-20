@@ -55,7 +55,8 @@ export default class Container extends Model {
         }
     
         if(typeof this.target !== 'undefined') {
-            config.target = this.target
+            // (Only thing that has to be passed in querystring, probably as it's only respected on setup of new container, and migrate works differently)
+            config.searchParams = { target: this.target };
         }
 
         // Create container

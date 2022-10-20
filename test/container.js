@@ -33,11 +33,15 @@ describe('Container', () => {
         it('Sets up container on specific host in LXD cluster', () => {
             let container = lxd.get_container('test').on_target('testing')
             container.target.should.not.be.undefined;
+
+            // @TODO this test is incomplete. Target is the only property set as querystring.
+            // Test if on_target().create() actually does this
         });
     })
 
     describe('create()', () => {
-        it('Creates container', async () => {
+        it('Creates container', async function() {
+            this.timeout(30000)
             let container = await create_container()
 
             let list = await lxd.list()
@@ -48,7 +52,8 @@ describe('Container', () => {
     })
 
     describe('get()', () => {
-        it('Fetches container data', async () => {
+        it('Fetches container data', async function() {
+            this.timeout(30000)
             let container = await create_container()
 
             let container_get = await container.get();
@@ -60,7 +65,7 @@ describe('Container', () => {
 
     describe('set_state()', () => {
         it('Changes container state', async function() {
-            this.timeout(10000)
+            this.timeout(30000)
             let container = await create_container()
 
             let state = await container.get_state();
@@ -77,7 +82,7 @@ describe('Container', () => {
 
     describe('wait_for_dhcp_lease()', () => {
         it('Waits for dhcp lease', async function() {
-            this.timeout(10000);
+            this.timeout(30000);
 
             let container = await start_container()
             await container.wait_for_dhcp_lease()
