@@ -1,6 +1,7 @@
 
 import chai from 'chai';
 import cap from 'chai-as-promised'
+import sinon from 'sinon'
 chai.use(cap)
 const assert = chai.assert
 chai.should();
@@ -30,12 +31,19 @@ describe('Container', () => {
     });
 
     describe('on_target()', () => {
-        it('Sets up container on specific host in LXD cluster', () => {
+        it('Sets up container on specific host in LXD cluster', async () => {
             let container = lxd.get_container('test').on_target('testing')
             container.target.should.not.be.undefined;
 
-            // @TODO this test is incomplete. Target is the only property set as querystring.
-            // Test if on_target().create() actually does this
+            const stub = sinon.stub(container.client, 'start_operation');
+
+            container = await container.create({ wait: false });
+
+            // test if `target` is passed as querystring to the LXD api
+            stub.getCall(0).args[0].searchParams.should.have.property('target','testing');
+
+            // Release stub so following tests can reach lxd
+            stub.restore()
         });
     })
 
